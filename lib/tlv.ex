@@ -1,0 +1,79 @@
+defmodule Eqmi.Tlv do
+  def decode_tlv(%{"format" => "guint8"}, data) do
+    <<val::unsigned-integer-size(8), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "guint16"}, data) do
+    <<val::unsigned-integer-size(16), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "guint32"}, data) do
+    <<val::unsigned-integer-size(32), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "sequence"} = obj, data) do
+    obj["contents"]
+    |> Enum.reduce(
+      {%{}, data},
+      fn x, {params, bin} ->
+        {v, rest} = Eqmi.Tlv.decode_tlv(x, bin)
+        {Map.put(params, x["name"], v), rest}
+      end
+    )
+  end
+
+  def decode_tlv(%{"format" => "string"} = obj, data) do
+    prefix_size = Map.get(obj, "size-prefix-format", "guint8")
+    {len, payload} = decode_tlv(%{"format" => prefix_size}, data)
+
+    <<val::binary-size(len), rest::binary>> = payload
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "struct"} = obj, data) do
+    obj["contents"]
+    |> Enum.reduce(
+      {%{}, data},
+      fn x, {params, bin} ->
+        {v, rest} = Eqmi.Tlv.decode_tlv(x, bin)
+        {Map.put(params, x["name"], v), rest}
+      end
+    )
+  end
+
+  def decode_tlv(%{"format" => "array"} = obj, data) do
+    prefix_size = Map.get(obj, "size-prefix-format", "guint8")
+    {len, payload} = decode_tlv(%{"format" => prefix_size}, data)
+
+    elements_number = Map.get(obj, "fixed-size", Integer.to_string(len)) |> String.to_integer()
+    build_array(elements_number, payload, obj["array-element"], [])
+  end
+
+  def decode_uinteger8(data) do
+    <<val::unsigned-integer-size(8), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_uinteger16(data) do
+    <<val::unsigned-integer-size(16), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_string(data) do
+    <<len::unsigned-integer-size(16), content::binary>> = data
+    <<val::binary-size(len), rest::binary>> = content
+    {val, rest}
+  end
+
+  defp build_array(0, rest, _, acc) do
+    {Enum.reverse(acc), rest}
+  end
+
+  defp build_array(n, payload, obj, acc) do
+    {element, rest} = decode_tlv(obj, payload)
+    build_array(n - 1, rest, obj, [element | acc])
+  end
+end
