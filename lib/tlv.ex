@@ -52,6 +52,42 @@ defmodule Eqmi.Tlv do
     build_array(elements_number, payload, obj["array-element"], [])
   end
 
+  def encode_tlv(%{"format" => "guint8"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      {1, <<v::unsigned-integer-size(8)>>}
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
+  def encode_tlv(%{"format" => "guint16"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      {2, <<v::unsigned-integer-size(16)>>}
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
+  def encode_tlv(%{"format" => "guint32"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      {4, <<v::unsigned-integer-size(32)>>}
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
   def decode_uinteger8(data) do
     <<val::unsigned-integer-size(8), rest::binary>> = data
     {val, rest}
@@ -75,5 +111,9 @@ defmodule Eqmi.Tlv do
   defp build_array(n, payload, obj, acc) do
     {element, rest} = decode_tlv(obj, payload)
     build_array(n - 1, rest, obj, [element | acc])
+  end
+
+  defp not_found_err(atom) do
+    "param " <> Atom.to_string(atom) <> "not found"
   end
 end

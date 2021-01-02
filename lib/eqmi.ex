@@ -66,7 +66,7 @@ defmodule Eqmi do
 
   tx_bits = if module["name"] == "CTL", do: 1, else: 2
 
-  @ctl_msgs ctl_msgs
+  # @ctl_msgs ctl_msgs
   defmodule Module.concat(Eqmi, module["name"]) do
     @ctl_msgs ctl_msgs
     @decoder_generator [
@@ -92,6 +92,18 @@ defmodule Eqmi do
       )
       |> Map.put(:tx_id, tx_id |> :binary.decode_unsigned(:little))
       |> Map.put(:messages, messages)
+    end
+
+    def request(:allocate_cid, params) do
+      %{
+        "format" => "guint8",
+        "id" => "0x01",
+        "name" => :service,
+        "public-format" => "QmiService",
+        "since" => "1.0",
+        "type" => "TLV"
+      }
+      |> Eqmi.Tlv.encode_tlv(params)
     end
 
     defp process_messages(<<>>, _, msgs) do
@@ -196,33 +208,33 @@ defmodule Eqmi do
   end
 
   def hello(device) do
-    for command <- @ctl_msgs do
-      IO.puts("ddddddddddddddddddddd")
-      IO.inspect(command)
-      IO.puts("ddddddddddddddddddddd")
+    # for command <- @ctl_msgs do
+    #  IO.puts("ddddddddddddddddddddd")
+    #  IO.inspect(command)
+    #  IO.puts("ddddddddddddddddddddd")
 
-      msg_id =
-        command["id"]
-        |> Eqmi.Builder.id_from_str()
+    #  msg_id =
+    #    command["id"]
+    #    |> Eqmi.Builder.id_from_str()
 
-      IO.inspect(msg_id)
+    #  IO.inspect(msg_id)
 
-      IO.inspect(command["id"])
-      IO.inspect(command["type"])
+    #  IO.inspect(command["id"])
+    #  IO.inspect(command["type"])
 
-      elements =
-        Map.get(command, "output", %{})
-        |> Enum.filter(fn x -> !Map.has_key?(x, "common-ref") end)
-        |> Eqmi.Builder.transform_name()
+    #  elements =
+    #    Map.get(command, "output", %{})
+    #    |> Enum.filter(fn x -> !Map.has_key?(x, "common-ref") end)
+    #    |> Eqmi.Builder.transform_name()
 
-      for out_params <- elements do
-        IO.puts("TTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-        IO.inspect(out_params)
-        IO.puts("----------------------------")
-        IO.inspect(out_params["format"])
-        IO.puts("----------------------------")
-      end
-    end
+    #  for out_params <- elements do
+    #    IO.puts("TTTTTTTTTTTTTTTTTTTTTTTTTTTT")
+    #    IO.inspect(out_params)
+    #    IO.puts("----------------------------")
+    #    IO.inspect(out_params["format"])
+    #    IO.puts("----------------------------")
+    #  end
+    # end
 
     IO.puts("+++++++++++++++++")
     msg = IO.binread(device, 3)
