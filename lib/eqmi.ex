@@ -95,15 +95,29 @@ defmodule Eqmi do
     end
 
     def request(:allocate_cid, params) do
-      %{
-        "format" => "guint8",
-        "id" => "0x01",
-        "name" => :service,
-        "public-format" => "QmiService",
-        "since" => "1.0",
-        "type" => "TLV"
-      }
-      |> Eqmi.Tlv.encode_tlv(params)
+      {len, content} =
+        [
+          %{
+            "format" => "guint8",
+            "id" => "0x01",
+            "name" => :service,
+            "public-format" => "QmiService",
+            "since" => "1.0",
+            "type" => "TLV"
+          }
+        ]
+        |> Enum.map(fn x ->
+          x
+          |> Eqmi.Tlv.encode_tlv(params)
+        end)
+        |> Enum.reverse()
+        |> Enum.reduce({0, []}, fn {l, b}, {size, list} ->
+          {l + size, [b | list]}
+        end)
+
+      # TODO agregar msg_id
+      [<<len::unsigned-integer-size(16)>> | content]
+      |> :erlang.list_to_binary()
     end
 
     defp process_messages(<<>>, _, msgs) do
@@ -193,6 +207,10 @@ defmodule Eqmi do
   def open_device(dev) do
     options = [:read, :write, :raw]
     File.open(dev, options)
+  end
+
+  def close_device(dev) do
+    File.close(dev)
   end
 
   def get_sender_type(type_id) do

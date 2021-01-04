@@ -35,5 +35,11 @@ defmodule EqmiTest do
     {:ok, dev} = Eqmi.open_device(qmi_device())
     IO.binwrite(device, @cts_response)
     assert Eqmi.hello(dev) == :pasturri
+    Eqmi.close_device(dev)
+  end
+
+  test "create message", %{sim_device: _device} do
+    msg = Eqmi.CTL.request(:allocate_cid, [{:service, 1}])
+    IO.inspect(msg)
   end
 end
