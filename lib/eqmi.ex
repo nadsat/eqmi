@@ -116,7 +116,9 @@ defmodule Eqmi do
         end)
 
       # TODO agregar msg_id
-      [<<len::unsigned-integer-size(16)>> | content]
+      msg_id = <<34::little-unsigned-integer-size(16)>>
+
+      [msg_id, <<len::little-unsigned-integer-size(16)>>, content]
       |> :erlang.list_to_binary()
     end
 

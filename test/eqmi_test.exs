@@ -40,6 +40,7 @@ defmodule EqmiTest do
 
   test "create message", %{sim_device: _device} do
     msg = Eqmi.CTL.request(:allocate_cid, [{:service, 1}])
+    IO.puts("testi ......................")
     IO.inspect(msg)
   end
 end

@@ -58,7 +58,19 @@ defmodule Eqmi.Tlv do
       |> Keyword.get(obj["name"])
 
     if v != nil do
-      {1, <<v::unsigned-integer-size(8)>>}
+      len = <<1::little-unsigned-integer-size(16)>>
+
+      type =
+        obj["id"]
+        |> Eqmi.Builder.id_from_str()
+
+      content = <<v::unsigned-integer-size(8)>>
+
+      msg =
+        [<<type::little-unsigned-integer-size(8)>>, len, content]
+        |> :erlang.list_to_binary()
+
+      {4, msg}
     else
       {:error, not_found_err(obj["name"])}
     end
@@ -70,7 +82,19 @@ defmodule Eqmi.Tlv do
       |> Keyword.get(obj["name"])
 
     if v != nil do
-      {2, <<v::unsigned-integer-size(16)>>}
+      len = <<2::little-unsigned-integer-size(16)>>
+
+      type =
+        obj["id"]
+        |> Eqmi.Builder.id_from_str()
+
+      content = <<v::unsigned-integer-size(16)>>
+
+      msg =
+        [<<type::little-unsigned-integer-size(8)>>, len, content]
+        |> :erlang.list_to_binary()
+
+      {5, msg}
     else
       {:error, not_found_err(obj["name"])}
     end
