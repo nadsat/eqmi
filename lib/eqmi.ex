@@ -94,6 +94,16 @@ defmodule Eqmi do
       |> Map.put(:messages, messages)
     end
 
+    def qmux_sdu(msg_type, transaction_id, messages) do
+      msg_id = Eqmi.message_type_id(msg_type)
+
+      ctrl_flag = <<msg_id::unsigned-integer-size(8)>>
+      tx_id = <<transaction_id::unsigned-integer-size(8)>>
+
+      [ctrl_flag, tx_id, messages]
+      |> :erlang.list_to_binary()
+    end
+
     def request(:allocate_cid, params) do
       {len, content} =
         [
@@ -115,7 +125,6 @@ defmodule Eqmi do
           {l + size, [b | list]}
         end)
 
-      # TODO agregar msg_id
       msg_id = <<34::little-unsigned-integer-size(16)>>
 
       [msg_id, <<len::little-unsigned-integer-size(16)>>, content]
@@ -225,6 +234,34 @@ defmodule Eqmi do
 
   def get_message_type(msg_id) do
     @message_types[msg_id]
+  end
+
+  def message_type_id(msg_name) do
+    @message_types
+    |> get_id(msg_name)
+  end
+
+  def sender_type_id(msg_name) do
+    @sender_types
+    |> get_id(msg_name)
+  end
+
+  def service_type_id(msg_name) do
+    @service_types
+    |> get_id(msg_name)
+  end
+
+  defp get_id(types, name) do
+    types
+    |> Enum.find(fn {_key, val} -> val == name end)
+    |> elem(0)
+  end
+
+  def qmux_message(header, payload) do
+    if_type = <<1::little-unsigned-integer-size(8)>>
+
+    [if_type, header, payload]
+    |> :erlang.list_to_binary()
   end
 
   def hello(device) do
