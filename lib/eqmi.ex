@@ -66,15 +66,19 @@ defmodule Eqmi do
 
   tx_bits = if module["name"] == "CTL", do: 1, else: 2
 
-  # @ctl_msgs ctl_msgs
-  defmodule Module.concat(Eqmi, module["name"]) do
-    @ctl_msgs ctl_msgs
-    @decoder_generator [
-      {"decode_request_tlv", "input"},
-      {"decode_response_tlv", "output"},
-      {"decode_indication_tlv", "indication"}
-    ]
+  decoder_generator = [
+    {"decode_request_tlv", "input"},
+    {"decode_response_tlv", "output"},
+    {"decode_indication_tlv", "indication"}
+  ]
 
+  encoder_generator = [
+    {"request", "input"},
+    {"response", "output"},
+    {"indication", "indication"}
+  ]
+
+  defmodule Module.concat(Eqmi, module["name"]) do
     require Eqmi.Builder
 
     def process_qmux_sdu(msg, payload) do
@@ -101,33 +105,6 @@ defmodule Eqmi do
       tx_id = <<transaction_id::unsigned-integer-size(8)>>
 
       [ctrl_flag, tx_id, messages]
-      |> :erlang.list_to_binary()
-    end
-
-    def request(:allocate_cid, params) do
-      {len, content} =
-        [
-          %{
-            "format" => "guint8",
-            "id" => "0x01",
-            "name" => :service,
-            "public-format" => "QmiService",
-            "since" => "1.0",
-            "type" => "TLV"
-          }
-        ]
-        |> Enum.map(fn x ->
-          x
-          |> Eqmi.Tlv.encode_tlv(params)
-        end)
-        |> Enum.reverse()
-        |> Enum.reduce({0, []}, fn {l, b}, {size, list} ->
-          {l + size, [b | list]}
-        end)
-
-      msg_id = <<34::little-unsigned-integer-size(16)>>
-
-      [msg_id, <<len::little-unsigned-integer-size(16)>>, content]
       |> :erlang.list_to_binary()
     end
 
@@ -172,12 +149,12 @@ defmodule Eqmi do
       &decode_indication_tlv/3
     end
 
-    for command <- @ctl_msgs do
+    for command <- ctl_msgs do
       msg_id =
         command["id"]
         |> Eqmi.Builder.id_from_str()
 
-      for {fun, direction} <- @decoder_generator do
+      for {fun, direction} <- decoder_generator do
         elements =
           Map.get(command, direction, [])
           |> Eqmi.Builder.transform_name()
@@ -196,6 +173,27 @@ defmodule Eqmi do
               msg
             else
               Eqmi.Builder.create_decoder(unquote(params), unquote(param_id))
+            end
+          end
+        end
+      end
+
+      for {fun, direction} <- encoder_generator do
+        elements =
+          Map.get(command, direction, [])
+          |> Eqmi.Builder.transform_name()
+
+        msg_name = Eqmi.Builder.name_to_atom(command["name"])
+
+        if length(elements) > 0 do
+          def unquote(:"#{fun}")(
+                unquote(msg_name),
+                params
+              ) do
+            if false do
+              params
+            else
+              Eqmi.Builder.create_encoder(unquote(elements), unquote(msg_id))
             end
           end
         end

@@ -41,7 +41,6 @@ defmodule EqmiTest do
   test "create message", %{sim_device: _device} do
     msg = Eqmi.CTL.request(:allocate_cid, [{:service, 1}])
     payload = Eqmi.CTL.qmux_sdu(:request, 2, [msg])
-    IO.puts("testi ......................")
     header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
     qmux_msg = Eqmi.qmux_message(header, payload)
     assert qmux_msg == <<1, 15, 0, 0, 0, 0, 0, 2, 34, 0, 4, 0, 1, 1, 0, 1>>
