@@ -74,8 +74,7 @@ defmodule Eqmi do
 
   encoder_generator = [
     {"request", "input"},
-    {"response", "output"},
-    {"indication", "indication"}
+    {"response", "output"}
   ]
 
   defmodule Module.concat(Eqmi, module["name"]) do
@@ -178,14 +177,31 @@ defmodule Eqmi do
         end
       end
 
-      for {fun, direction} <- encoder_generator do
+      if command["type"] == "Indication" do
         elements =
-          Map.get(command, direction, [])
+          Map.get(command, "indication", [])
           |> Eqmi.Builder.transform_name()
 
         msg_name = Eqmi.Builder.name_to_atom(command["name"])
 
-        if length(elements) > 0 do
+        def indication(
+              unquote(msg_name),
+              params
+            ) do
+          if false do
+            params
+          else
+            Eqmi.Builder.create_encoder(unquote(elements), unquote(msg_id))
+          end
+        end
+      else
+        for {fun, direction} <- encoder_generator do
+          elements =
+            Map.get(command, direction, [])
+            |> Eqmi.Builder.transform_name()
+
+          msg_name = Eqmi.Builder.name_to_atom(command["name"])
+
           def unquote(:"#{fun}")(
                 unquote(msg_name),
                 params
