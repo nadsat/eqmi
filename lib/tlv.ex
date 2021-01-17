@@ -151,22 +151,6 @@ defmodule Eqmi.Tlv do
     end
   end
 
-  def decode_uinteger8(data) do
-    <<val::unsigned-integer-size(8), rest::binary>> = data
-    {val, rest}
-  end
-
-  def decode_uinteger16(data) do
-    <<val::unsigned-integer-size(16), rest::binary>> = data
-    {val, rest}
-  end
-
-  def decode_string(data) do
-    <<len::unsigned-integer-size(16), content::binary>> = data
-    <<val::binary-size(len), rest::binary>> = content
-    {val, rest}
-  end
-
   defp build_array(0, rest, _, acc) do
     {Enum.reverse(acc), rest}
   end
