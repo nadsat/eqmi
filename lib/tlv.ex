@@ -29,6 +29,21 @@ defmodule Eqmi.Tlv do
     {val, rest}
   end
 
+  def decode_tlv(%{"format" => "gint8"}, data) do
+    <<val::integer-size(8), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "gint16"}, data) do
+    <<val::integer-size(16), rest::binary>> = data
+    {val, rest}
+  end
+
+  def decode_tlv(%{"format" => "gint32"}, data) do
+    <<val::integer-size(32), rest::binary>> = data
+    {val, rest}
+  end
+
   def decode_tlv(%{"format" => "sequence"} = obj, data) do
     obj["contents"]
     |> Enum.reduce(
