@@ -139,6 +139,42 @@ defmodule Eqmi.Tlv do
     end
   end
 
+  def encode_tlv(%{"format" => "gint8"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      encode_int(obj["id"], 8, v)
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
+  def encode_tlv(%{"format" => "gint16"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      encode_int(obj["id"], 16, v)
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
+  def encode_tlv(%{"format" => "gint32"} = obj, data) do
+    v =
+      data
+      |> Keyword.get(obj["name"])
+
+    if v != nil do
+      encode_int(obj["id"], 32, v)
+    else
+      {:error, not_found_err(obj["name"])}
+    end
+  end
+
   defp encode_unsigned(id, uint_size, val) do
     len = div(uint_size, 8)
     l = <<len::little-unsigned-integer-size(16)>>
@@ -148,6 +184,23 @@ defmodule Eqmi.Tlv do
       |> Eqmi.Builder.id_from_str()
 
     content = <<val::unsigned-integer-size(uint_size)>>
+
+    msg =
+      [<<type::little-unsigned-integer-size(8)>>, l, content]
+      |> :erlang.list_to_binary()
+
+    {3 + len, msg}
+  end
+
+  defp encode_int(id, uint_size, val) do
+    len = div(uint_size, 8)
+    l = <<len::little-unsigned-integer-size(16)>>
+
+    type =
+      id
+      |> Eqmi.Builder.id_from_str()
+
+    content = <<val::integer-size(uint_size)>>
 
     msg =
       [<<type::little-unsigned-integer-size(8)>>, l, content]
