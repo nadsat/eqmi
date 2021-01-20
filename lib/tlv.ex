@@ -92,90 +92,38 @@ defmodule Eqmi.Tlv do
   end
 
   def encode_tlv(%{"format" => "guint8"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_unsigned(obj["id"], 8, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_unsigned(obj["id"], 8, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "guint16"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_unsigned(obj["id"], 16, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_unsigned(obj["id"], 16, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "guint32"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_unsigned(obj["id"], 32, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_unsigned(obj["id"], 32, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "guint64"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_unsigned(obj["id"], 64, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_unsigned(obj["id"], 64, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "gint8"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_int(obj["id"], 8, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_int(obj["id"], 8, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "gint16"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_int(obj["id"], 16, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_int(obj["id"], 16, obj["name"], data)
   end
 
   def encode_tlv(%{"format" => "gint32"} = obj, data) do
-    v =
-      data
-      |> Keyword.get(obj["name"])
-
-    if v != nil do
-      encode_int(obj["id"], 32, v)
-    else
-      {:error, not_found_err(obj["name"])}
-    end
+    encode_int(obj["id"], 32, obj["name"], data)
   end
 
-  defp encode_unsigned(id, uint_size, val) do
+  defp encode_unsigned(id, uint_size, name, data) do
+    val =
+      data
+      |> Keyword.get(name)
+
     len = div(uint_size, 8)
     l = <<len::little-unsigned-integer-size(16)>>
 
@@ -192,7 +140,11 @@ defmodule Eqmi.Tlv do
     {3 + len, msg}
   end
 
-  defp encode_int(id, uint_size, val) do
+  defp encode_int(id, uint_size, name, data) do
+    val =
+      data
+      |> Keyword.get(name)
+
     len = div(uint_size, 8)
     l = <<len::little-unsigned-integer-size(16)>>
 
@@ -216,9 +168,5 @@ defmodule Eqmi.Tlv do
   defp build_array(n, payload, obj, acc) do
     {element, rest} = decode_tlv(obj, payload)
     build_array(n - 1, rest, obj, [element | acc])
-  end
-
-  defp not_found_err(atom) do
-    "param " <> Atom.to_string(atom) <> "not found"
   end
 end
