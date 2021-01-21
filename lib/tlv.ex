@@ -49,7 +49,9 @@ defmodule Eqmi.Tlv do
       obj["guint-size"]
       |> String.to_integer()
 
-    <<val::unsigned-integer-size(s), rest::binary>> = data
+    bit_number = s * 8
+
+    <<val::unsigned-integer-size(bit_number), rest::binary>> = data
     {val, rest}
   end
 
@@ -119,6 +121,40 @@ defmodule Eqmi.Tlv do
     encode_int(obj["id"], 32, obj["name"], data)
   end
 
+  def encode_tlv(%{"format" => "gfloat"} = obj, data) do
+    encode_float(obj["id"], 32, obj["name"], data)
+  end
+
+  def encode_tlv(%{"format" => "gdouble"} = obj, data) do
+    encode_float(obj["id"], 64, obj["name"], data)
+  end
+
+  def encode_tlv(%{"format" => "gunint-sized"} = obj, data) do
+    val =
+      data
+      |> Keyword.get(obj["name"])
+
+    len =
+      obj["guint-size"]
+      |> String.to_integer()
+
+    bit_number = len * 8
+
+    l = <<len::little-unsigned-integer-size(16)>>
+
+    type =
+      obj["id"]
+      |> Eqmi.Builder.id_from_str()
+
+    content = <<val::unsigned-integer-size(bit_number)>>
+
+    msg =
+      [<<type::little-unsigned-integer-size(8)>>, l, content]
+      |> :erlang.list_to_binary()
+
+    {3 + len, msg}
+  end
+
   defp encode_unsigned(id, uint_size, name, data) do
     val =
       data
@@ -153,6 +189,27 @@ defmodule Eqmi.Tlv do
       |> Eqmi.Builder.id_from_str()
 
     content = <<val::integer-size(uint_size)>>
+
+    msg =
+      [<<type::little-unsigned-integer-size(8)>>, l, content]
+      |> :erlang.list_to_binary()
+
+    {3 + len, msg}
+  end
+
+  defp encode_float(id, uint_size, name, data) do
+    val =
+      data
+      |> Keyword.get(name)
+
+    len = div(uint_size, 8)
+    l = <<len::little-unsigned-integer-size(16)>>
+
+    type =
+      id
+      |> Eqmi.Builder.id_from_str()
+
+    content = <<val::float-size(uint_size)>>
 
     msg =
       [<<type::little-unsigned-integer-size(8)>>, l, content]
