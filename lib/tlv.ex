@@ -155,6 +155,29 @@ defmodule Eqmi.Tlv do
     {3 + len, msg}
   end
 
+  def encode_tlv(%{"format" => "string"} = obj, data) do
+    val =
+      data
+      |> Keyword.get(obj["name"])
+      |> to_charlist()
+
+    len = length(val)
+
+    l = <<len::little-unsigned-integer-size(16)>>
+
+    type =
+      obj["id"]
+      |> Eqmi.Builder.id_from_str()
+
+    content = :binary.list_to_bin(val)
+
+    msg =
+      [<<type::little-unsigned-integer-size(8)>>, l, content]
+      |> :erlang.list_to_binary()
+
+    {3 + len, msg}
+  end
+
   defp encode_unsigned(id, uint_size, name, data) do
     val =
       data
