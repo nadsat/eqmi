@@ -17,7 +17,7 @@ defmodule Eqmi do
     12 => :qmi_pbm,
     14 => :qmi_cat
   }
-  @message_types %{0 => :request, 1 => :response, 2 => :indication}
+  @message_types %{0 => :request, 2 => :response, 4 => :indication}
 
   common_base =
     File.read!("priv/qmi-common.json")
@@ -65,6 +65,7 @@ defmodule Eqmi do
     |> Eqmi.Builder.replace_common(common_defs)
 
   tx_bits = if module["name"] == "CTL", do: 1, else: 2
+  type_shift = if module["name"] == "CTL", do: 1, else: 0
 
   decoder_generator = [
     {"decode_request_tlv", "input"},
@@ -83,8 +84,12 @@ defmodule Eqmi do
     def process_qmux_sdu(msg, payload) do
       <<m_type::binary-size(1), tx_id::binary-size(unquote(tx_bits)), rest::binary>> = msg
 
-      IO.inspect(rest)
-      msg_type = m_type |> :binary.decode_unsigned(:little) |> Eqmi.get_message_type()
+      msg_type =
+        m_type
+        |> :binary.decode_unsigned(:little)
+        |> Bitwise.<<<(unquote(type_shift))
+        |> Eqmi.get_message_type()
+
       decode_func = get_decode_func(msg_type)
       messages = process_messages(rest, decode_func, [])
 

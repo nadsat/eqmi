@@ -110,43 +110,43 @@ defmodule Eqmi.Tlv do
     {3 + len, msg}
   end
 
-  def encode_value(%{"format" => "guint8"}, data) do
+  defp encode_value(%{"format" => "guint8"}, data) do
     encode_unsigned(8, data)
   end
 
-  def encode_value(%{"format" => "guint16"}, data) do
+  defp encode_value(%{"format" => "guint16"}, data) do
     encode_unsigned(16, data)
   end
 
-  def encode_value(%{"format" => "guint32"}, data) do
+  defp encode_value(%{"format" => "guint32"}, data) do
     encode_unsigned(32, data)
   end
 
-  def encode_value(%{"format" => "guint64"}, data) do
+  defp encode_value(%{"format" => "guint64"}, data) do
     encode_unsigned(64, data)
   end
 
-  def encode_value(%{"format" => "gint8"}, data) do
+  defp encode_value(%{"format" => "gint8"}, data) do
     encode_int(8, data)
   end
 
-  def encode_value(%{"format" => "gint16"}, data) do
+  defp encode_value(%{"format" => "gint16"}, data) do
     encode_int(16, data)
   end
 
-  def encode_value(%{"format" => "gint32"}, data) do
+  defp encode_value(%{"format" => "gint32"}, data) do
     encode_int(32, data)
   end
 
-  def encode_value(%{"format" => "gfloat"}, data) do
+  defp encode_value(%{"format" => "gfloat"}, data) do
     encode_float(32, data)
   end
 
-  def encode_value(%{"format" => "gdouble"}, data) do
+  defp encode_value(%{"format" => "gdouble"}, data) do
     encode_float(64, data)
   end
 
-  def encode_value(%{"format" => "guint-sized"} = obj, val) do
+  defp encode_value(%{"format" => "guint-sized"} = obj, val) do
     len =
       obj["guint-size"]
       |> String.to_integer()
@@ -157,7 +157,7 @@ defmodule Eqmi.Tlv do
     {len, content}
   end
 
-  def encode_value(%{"format" => "string"}, data) do
+  defp encode_value(%{"format" => "string"}, data) do
     val =
       data
       |> to_charlist()
@@ -165,6 +165,23 @@ defmodule Eqmi.Tlv do
     len = length(val)
 
     content = :binary.list_to_bin(val)
+
+    {len, content}
+  end
+
+  defp encode_value(%{"format" => "array"} = obj, data) do
+    prefix_size = Map.get(obj, "size-prefix-format", "guint8")
+    array_size = length(data)
+    {l, c} = encode_value(%{"format" => prefix_size}, array_size)
+    len = l + array_size
+
+    payload =
+      data
+      |> Enum.map(fn x -> encode_value(obj["array-element"], x) end)
+
+    content =
+      [c | payload]
+      |> :binary.list_to_bin()
 
     {len, content}
   end
