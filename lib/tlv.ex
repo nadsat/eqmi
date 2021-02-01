@@ -186,6 +186,28 @@ defmodule Eqmi.Tlv do
     {len, content}
   end
 
+  defp encode_value(%{"format" => "sequence"} = obj, data) do
+    {len, content_list} =
+      obj["contents"]
+      |> Enum.map(fn x ->
+        payload = Keyword.get(data, obj["name"])
+        encode_value(x, payload)
+      end)
+      |> Enum.reduce(
+        {0, []},
+        fn {l, b}, {acc_len, bin_list} ->
+          {l + acc_len, [b | bin_list]}
+        end
+      )
+
+    content =
+      content_list
+      |> Enum.reverse()
+      |> :binary.list_to_bin()
+
+    {len, content}
+  end
+
   defp encode_unsigned(uint_size, val) do
     content = <<val::unsigned-integer-size(uint_size)>>
 
