@@ -178,9 +178,29 @@ defmodule Eqmi.Tlv do
     {len, content}
   end
 
+  defp encode_value(
+         %{"format" => "array", "sequence-prefix-format" => seq_prefix} = obj,
+         data
+       ) do
+    {seq_val, payload} = data
+    {prefix_len, seq} = encode_value(%{"format" => seq_prefix}, seq_val)
+
+    {array_len, encoded_array} =
+      obj
+      |> Map.drop("sequence-prefix-format")
+      |> encode_value(payload)
+
+    content =
+      [seq | encoded_array]
+      |> :binary.list_to_bin()
+
+    {prefix_len + array_len, content}
+  end
+
   defp encode_value(%{"format" => "array"} = obj, data) do
     prefix_size = Map.get(obj, "size-prefix-format", "guint8")
     array_size = length(data)
+
     {l, c} = encode_value(%{"format" => prefix_size}, array_size)
     len = l + array_size
 
