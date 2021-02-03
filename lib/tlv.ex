@@ -90,7 +90,16 @@ defmodule Eqmi.Tlv do
     {len, payload} = decode_tlv(%{"format" => prefix_size}, data)
 
     elements_number = Map.get(obj, "fixed-size", Integer.to_string(len)) |> String.to_integer()
-    build_array(elements_number, payload, obj["array-element"], [])
+
+    seq_prefix = Map.get(obj, "sequence-prefix-format")
+
+    if seq_prefix != nil do
+      {seq, content} = decode_tlv(%{"format" => seq_prefix}, payload)
+      {body, rest} = build_array(elements_number, content, obj["array-element"], [])
+      {{seq, body}, rest}
+    else
+      build_array(elements_number, payload, obj["array-element"], [])
+    end
   end
 
   def encode_tlv(obj, data) do
