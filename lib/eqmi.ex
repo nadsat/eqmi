@@ -221,16 +221,20 @@ defmodule Eqmi do
       end
     end
 
-    defp decode_request_tlv(_, _, _) do
-      %{}
+    defp decode_request_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
     end
 
-    defp decode_response_tlv(_, _, _) do
-      %{}
+    defp decode_response_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
     end
 
-    defp decode_indication_tlv(_, _, _) do
-      %{}
+    defp decode_indication_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
+    end
+
+    defp decode_unknown_tlv(id, value) do
+      %{:value => value, :param_id => id}
     end
   end
 
