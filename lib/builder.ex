@@ -13,6 +13,7 @@ defmodule Eqmi.Builder do
     quote do
       {len, content} =
         unquote(Macro.escape(payload))
+        |> Enum.filter(fn x -> Keyword.has_key?(var!(params), x["name"]) end)
         |> Enum.map(fn x ->
           x
           |> Eqmi.Tlv.encode_tlv(var!(params))
