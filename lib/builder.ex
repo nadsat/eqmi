@@ -17,7 +17,6 @@ defmodule Eqmi.Builder do
           x
           |> Eqmi.Tlv.encode_tlv(var!(params))
         end)
-        |> Enum.reverse()
         |> Enum.reduce({0, []}, fn {l, b}, {size, list} ->
           {l + size, [b | list]}
         end)

@@ -112,6 +112,15 @@ defmodule Eqmi do
       |> :erlang.list_to_binary()
     end
 
+    def encode_tlv_raw(type, v) do
+      t = <<type::unsigned-integer-size(16)>>
+      val_len = byte_size(v)
+      l = <<val_len::unsigned-integer-size(16)>>
+
+      [t, l, v]
+      |> :binary.list_to_bin()
+    end
+
     defp process_messages(<<>>, _, msgs) do
       msgs
     end
@@ -221,16 +230,20 @@ defmodule Eqmi do
       end
     end
 
-    defp decode_request_tlv(_, _, _) do
-      %{}
+    defp decode_request_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
     end
 
-    defp decode_response_tlv(_, _, _) do
-      %{}
+    defp decode_response_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
     end
 
-    defp decode_indication_tlv(_, _, _) do
-      %{}
+    defp decode_indication_tlv(_, id, value) do
+      decode_unknown_tlv(id, value)
+    end
+
+    defp decode_unknown_tlv(id, value) do
+      %{:value => value, :param_id => id}
     end
   end
 
