@@ -80,6 +80,8 @@ defmodule Eqmi do
 
   defmodule Module.concat(Eqmi, module["name"]) do
     require Eqmi.Builder
+    require Eqmi.Builder.Decoder
+    require Eqmi.Builder.Encoder
 
     def process_qmux_sdu(msg, payload) do
       <<m_type::binary-size(1), tx_id::binary-size(unquote(tx_bits)), rest::binary>> = msg
@@ -185,7 +187,7 @@ defmodule Eqmi do
             if false do
               msg
             else
-              Eqmi.Builder.create_decoder(unquote(params), unquote(param_id))
+              Eqmi.Builder.Decoder.create(unquote(params), unquote(param_id))
             end
           end
         end
@@ -205,7 +207,7 @@ defmodule Eqmi do
           if false do
             params
           else
-            Eqmi.Builder.create_encoder(unquote(elements), unquote(msg_id))
+            Eqmi.Builder.Encoder.create(unquote(elements), unquote(msg_id))
           end
         end
       else
@@ -223,7 +225,7 @@ defmodule Eqmi do
             if false do
               params
             else
-              Eqmi.Builder.create_encoder(unquote(elements), unquote(msg_id))
+              Eqmi.Builder.Encoder.create(unquote(elements), unquote(msg_id))
             end
           end
         end
