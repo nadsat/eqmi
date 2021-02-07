@@ -270,7 +270,7 @@ defmodule Eqmi.Tlv do
 
   defp encode_type(id) do
     id
-    |> Eqmi.Builder.id_from_str()
+    |> Eqmi.Builder.Utils.id_from_str()
   end
 
   defp build_array(0, rest, _, acc) do
