@@ -69,10 +69,14 @@ defmodule Eqmi.Builder.Utils do
     %{obj | "name" => name, "array-element" => rename_obj(obj["array-element"])}
   end
 
-  defp rename_obj(obj) do
-    name = name_to_atom(obj["name"])
+  defp rename_obj(%{"name" => name} = obj) do
+    n = name_to_atom(name)
 
-    %{obj | "name" => name}
+    %{obj | "name" => n}
+  end
+
+  defp rename_obj(obj) do
+    obj
   end
 
   def name_to_atom(name) do
