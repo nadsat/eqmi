@@ -14,9 +14,15 @@ defmodule Eqmi do
     6 => :qmi_pds,
     9 => :qmi_voice,
     10 => :qmi_cat,
-    11 => :qmi_cat,
+    11 => :qmi_uim,
     12 => :qmi_pbm,
-    14 => :qmi_cat
+    14 => :qmi_cat,
+    16 => :qmi_loc,
+    17 => :qmi_sar,
+    20 => :qmi_wda,
+    226 => :qmi_oma,
+    231 => :qmi_gms,
+    232 => :qmi_gas
   }
   @message_types %{0 => :request, 2 => :response, 4 => :indication}
 
@@ -128,5 +134,65 @@ defmodule Eqmi do
     IO.puts("sender_type [#{inspect(payload.sender_type)}]")
     IO.puts("client_id [#{inspect(payload.client_id)}]")
     Eqmi.CTL.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_wds} = payload, messages) do
+    Eqmi.WDS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_dms} = payload, messages) do
+    Eqmi.DMS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_nas} = payload, messages) do
+    Eqmi.NAS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_qos} = payload, messages) do
+    Eqmi.QOS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_wms} = payload, messages) do
+    Eqmi.WMS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_pds} = payload, messages) do
+    Eqmi.PDS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_voice} = payload, messages) do
+    Eqmi.VOICE.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_pbm} = payload, messages) do
+    Eqmi.PBM.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_UIM} = payload, messages) do
+    Eqmi.UIM.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_loc} = payload, messages) do
+    Eqmi.LOC.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_sar} = payload, messages) do
+    Eqmi.SAR.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_wda} = payload, messages) do
+    Eqmi.WDA.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_oma} = payload, messages) do
+    Eqmi.OMA.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_gms} = payload, messages) do
+    Eqmi.GMS.process_qmux_sdu(messages, payload)
+  end
+
+  defp process_service(%{service_type: :qmi_gas} = payload, messages) do
+    Eqmi.GAS.process_qmux_sdu(messages, payload)
   end
 end
