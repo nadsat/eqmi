@@ -7,8 +7,12 @@ defmodule Eqmi.Server do
     options = [:read, :write, :raw]
 
     case File.open(dev, options) do
-      {:ok, dev} -> {:ok, %{device: dev}}
-      {:error, reason} -> {:stop, reason}
+      {:ok, dev} ->
+        Eqmi.Reader.start_link(self(), dev)
+        {:ok, %{device: dev}}
+
+      {:error, reason} ->
+        {:stop, reason}
     end
   end
 end
