@@ -26,12 +26,12 @@ defmodule Eqmi do
   }
   @message_types %{0 => :request, 2 => :response, 4 => :indication}
 
-  def open_device(dev) do
+  def open(dev) do
     options = [:read, :write, :raw]
     File.open(dev, options)
   end
 
-  def close_device(dev) do
+  def close(dev) do
     File.close(dev)
   end
 
@@ -68,6 +68,7 @@ defmodule Eqmi do
     |> elem(0)
   end
 
+  # to be deleted
   def qmux_message(header, payload) do
     if_type = <<1::little-unsigned-integer-size(8)>>
 

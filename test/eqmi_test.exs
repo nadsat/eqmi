@@ -38,17 +38,17 @@ defmodule EqmiTest do
   end
 
   test "greets the world", %{sim_device: device} do
-    {:ok, dev} = Eqmi.open_device(qmi_device())
+    {:ok, dev} = Eqmi.open(qmi_device())
     IO.binwrite(device, @cts_response)
     assert Eqmi.hello(dev) == :pasturri
-    Eqmi.close_device(dev)
+    Eqmi.close(dev)
   end
 
   test "dms response", %{sim_device: device} do
-    {:ok, dev} = Eqmi.open_device(qmi_device())
+    {:ok, dev} = Eqmi.open(qmi_device())
     IO.binwrite(device, @dms_response)
     assert Eqmi.hello(dev) == :pasturri
-    Eqmi.close_device(dev)
+    Eqmi.close(dev)
   end
 
   test "create message", %{sim_device: _device} do
