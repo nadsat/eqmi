@@ -5,7 +5,8 @@ defmodule Eqmi.Server do
     @moduledoc false
     defstruct type: :control_point,
               current_tx: 0,
-              id: 0
+              id: 0,
+              pid: nil
   end
 
   def start_link(dev) do
@@ -13,7 +14,7 @@ defmodule Eqmi.Server do
   end
 
   def client(pid, type) do
-    GenServer.call(pid, {:new_client, type})
+    GenServer.call(pid, {:new_client, type, self()})
   end
 
   def qmux_message(pid, client_ref, ctrl_flag, service, messages) do
@@ -44,9 +45,9 @@ defmodule Eqmi.Server do
     |> Enum.reduce_while(0, fn x, acc -> if acc == x, do: {:cont, acc + 1}, else: {:halt, acc} end)
   end
 
-  defp new_client(type, clients) do
+  defp new_client(type, pid, clients) do
     id = new_id(clients)
-    %ClientState{type: type, id: id, current_tx: 0}
+    %ClientState{type: type, id: id, current_tx: 0, pid: pid}
   end
 
   defp qmux_sdu(msg_type, transaction_id, messages) do
@@ -67,8 +68,13 @@ defmodule Eqmi.Server do
     id
   end
 
-  def handle_call({:new_client, type}, _from, %{clients: clients} = s) do
-    client = new_client(type, clients)
+  defp find_client(clients, id) do
+    clients
+    |> Enum.find(fn {_, c} -> c.id == id end)
+  end
+
+  def handle_call({:new_client, type, pid}, _from, %{clients: clients} = s) do
+    client = new_client(type, pid, clients)
     id = :erlang.make_ref()
     new_clients = Map.put(clients, id, client)
     state = %{s | clients: new_clients}
@@ -103,14 +109,17 @@ defmodule Eqmi.Server do
     end
   end
 
-  def handle_call({:sned, msg}, _from, %{dev: dev} = s) do
+  def handle_call({:send, msg}, _from, %{dev: dev} = s) do
     res = IO.binwrite(dev, msg)
     {:reply, res, s}
   end
 
-  def handle_info({:qmux, header, messages}, state) do
-    process_service(header, messages)
-    {:noreply, state}
+  # falta actualizar cliente
+  def handle_info({:qmux, header, messages}, %{clients: clients} = s) do
+    msg = process_service(header, messages)
+    client = find_client(clients, header.client_id)
+    send(client.pid, msg)
+    {:noreply, s}
   end
 
   defp process_service(%{service_type: :qmi_wds} = payload, messages) do
