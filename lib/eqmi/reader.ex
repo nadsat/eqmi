@@ -6,6 +6,13 @@ defmodule Eqmi.Reader do
   end
 
   def run(pid, dev) do
+    options = [:read, :raw]
+
+    {:ok, fd} = File.open(dev, options)
+    run_priv(pid, fd)
+  end
+
+  defp run_priv(pid, dev) do
     msg = IO.binread(dev, 3)
     process_message(msg, pid, dev)
   end
@@ -16,7 +23,6 @@ defmodule Eqmi.Reader do
 
   defp process_message(:eof, pid, _) do
     send(pid, {:error, :eof})
-    {:error, :eof}
   end
 
   defp process_message(qmux, pid, dev) do
@@ -26,6 +32,6 @@ defmodule Eqmi.Reader do
     <<h::binary-size(3), rest::binary>> = msg
     header = Eqmi.QmuxHeader.parse(h)
     send(pid, {:qmux, header, rest})
-    run(dev, pid)
+    run_priv(dev, pid)
   end
 end

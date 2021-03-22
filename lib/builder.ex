@@ -126,7 +126,6 @@ defmodule Eqmi.Builder do
       end
 
       def proc_ctl_tlv(<<>>, _, _, params) do
-        IO.puts("proc ctl done")
         params
       end
 
