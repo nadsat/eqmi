@@ -15,6 +15,10 @@ defmodule Eqmi.Server do
     GenServer.start_link(__MODULE__, dev, opts)
   end
 
+  def stop(pid, reason \\ :shutdown, timeout \\ :infinity) do
+    GenServer.stop(pid, reason, timeout)
+  end
+
   def client(pid, type) do
     {:ok, ctl} = GenServer.call(pid, :get_ctl)
 
@@ -44,11 +48,12 @@ defmodule Eqmi.Server do
 
     case File.open(device, options) do
       {:ok, dev} ->
-        Eqmi.Reader.start_link(self(), device)
+        {:ok, reader} = Eqmi.Reader.start_link(self(), device)
         {:ok, ctl} = Eqmi.Control.start_link(self())
 
         {:ok,
          %{
+           reader: reader,
            device: dev,
            control_points: %{},
            clients: %{:qmi_ctl => %{@ctl_id => ctl}},
@@ -83,13 +88,14 @@ defmodule Eqmi.Server do
   end
 
   def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
-    client = %ClientState{type: type, id: cid, current_tx: 0, pid: from}
+    {pid, _} = from
+    client = %ClientState{type: type, id: cid, current_tx: 0, pid: pid}
     ref = :erlang.make_ref()
 
     clients_ids =
       clients
       |> Map.get(type, %{})
-      |> Map.put(cid, from)
+      |> Map.put(cid, pid)
 
     new_clients = Map.put(clients, type, clients_ids)
     new_ctrls = Map.put(ctrls, ref, client)
@@ -125,12 +131,13 @@ defmodule Eqmi.Server do
     end
   end
 
-  def handle_call({:send_message, ref, msg}, _from, %{device: dev, control_points: controls} = s) do
+  # falta actualizar cliente update tx id
+  def handle_call({:send_msg, ref, msg}, _from, %{device: dev, control_points: controls} = s) do
     client = Map.get(controls, ref)
 
     if client != nil do
       tx_id = client.current_tx + 1
-      payload = qmux_sdu(:request, client.type, tx_id, msg)
+      payload = qmux_sdu(client.type, :request, tx_id, msg)
       header = Eqmi.QmuxHeader.new(:control_point, client.id, client.type, byte_size(payload))
       qmux_msg = Eqmi.qmux_message(header, payload)
 
@@ -146,7 +153,6 @@ defmodule Eqmi.Server do
     {:reply, res, s}
   end
 
-  # falta actualizar cliente
   def handle_info({:qmux, header, messages}, %{clients: clients} = s) do
     msg = process_service(header, messages)
     client = find_client(clients, header.service_type, header.client_id)
@@ -160,6 +166,10 @@ defmodule Eqmi.Server do
 
   def handle_info(_msg, s) do
     {:noreply, s}
+  end
+
+  def terminate(_reason, s) do
+    File.close(s.device)
   end
 
   defp find_client(clients, service_type, client_id) do
@@ -240,7 +250,7 @@ defmodule Eqmi.Server do
     Eqmi.WDS.qmux_sdu(msg_type, tx_id, messages)
   end
 
-  defp qmux_sdu(:qmi_dmsmsg_type, msg_type, tx_id, messages) do
+  defp qmux_sdu(:qmi_dms, msg_type, tx_id, messages) do
     Eqmi.DMS.qmux_sdu(msg_type, tx_id, messages)
   end
 

@@ -51,7 +51,8 @@ defmodule Eqmi.Control do
   end
 
   def wait4_response(:info, {:qmux, msg}, data) do
-    cid = get_cid(msg)
+    [h | _] = msg.messages
+    cid = get_cid(h)
 
     response =
       if cid != nil do
