@@ -131,8 +131,11 @@ defmodule Eqmi.Server do
     end
   end
 
-  # falta actualizar cliente update tx id
-  def handle_call({:send_msg, ref, msg}, _from, %{device: dev, control_points: controls} = s) do
+  def handle_call(
+        {:send_msg, ref, msg},
+        _from,
+        %{device: dev, control_points: controls} = s
+      ) do
     client = Map.get(controls, ref)
 
     if client != nil do
@@ -140,9 +143,11 @@ defmodule Eqmi.Server do
       payload = qmux_sdu(client.type, :request, tx_id, msg)
       header = Eqmi.QmuxHeader.new(:control_point, client.id, client.type, byte_size(payload))
       qmux_msg = Eqmi.qmux_message(header, payload)
-
+      new_client = %ClientState{client | current_tx: tx_id}
+      new_ctrls = Map.put(controls, ref, new_client)
       res = IO.binwrite(dev, qmux_msg)
-      {:reply, res, s}
+
+      {:reply, res, %{s | control_points: new_ctrls}}
     else
       {:reply, {:error, "control_point not found"}, s}
     end
