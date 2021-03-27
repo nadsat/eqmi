@@ -89,7 +89,7 @@ defmodule Eqmi.Server do
 
   def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
     {pid, _} = from
-    client = %ClientState{type: type, id: cid, current_tx: 0, pid: pid}
+    client_state = %ClientState{type: type, id: cid, current_tx: 0, pid: pid}
     ref = :erlang.make_ref()
 
     clients_ids =
@@ -98,7 +98,7 @@ defmodule Eqmi.Server do
       |> Map.put(cid, pid)
 
     new_clients = Map.put(clients, type, clients_ids)
-    new_ctrls = Map.put(ctrls, ref, client)
+    new_ctrls = Map.put(ctrls, ref, client_state)
     state = %{s | clients: new_clients, control_points: new_ctrls}
     {:reply, ref, state}
   end
