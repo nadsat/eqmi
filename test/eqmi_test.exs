@@ -1,6 +1,8 @@
 defmodule EqmiTest do
+  require Logger
+
   use ExUnit.Case
-  @cts_response <<1, 23, 0, 128, 0, 0, 1, 2, 34, 0, 12, 0, 2, 4, 0, 0, 0, 0, 0, 1, 2, 0, 1, 20>>
+  @ctl_response <<1, 23, 0, 128, 0, 0, 1, 2, 34, 0, 12, 0, 2, 4, 0, 0, 0, 0, 0, 1, 2, 0, 1, 2>>
   @dms_response <<1, 146, 0, 128, 2, 2, 2, 1, 0, 32, 0, 134, 0, 2, 4, 0, 0, 0, 0, 0, 1, 14, 0,
                   128, 240, 250, 2, 0, 225, 245, 5, 4, 2, 3, 4, 5, 8, 16, 4, 0, 4, 0, 0, 0, 17, 8,
                   0, 3, 0, 0, 0, 0, 0, 0, 0, 18, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 19, 12, 0, 1, 1, 1,
@@ -33,29 +35,24 @@ defmodule EqmiTest do
     end
   end
 
+  def mock_read(device, size, msg) do
+    {f, t, ref} = device
+    dev = {f, t, %{ref | owner: self()}}
+    _data = IO.binread(dev, size)
+    IO.binwrite(dev, msg)
+  end
+
   setup do
     common_setup()
   end
 
-  test "greets the world", %{sim_device: device} do
-    {:ok, dev} = Eqmi.open_device(qmi_device())
-    IO.binwrite(device, @cts_response)
-    assert Eqmi.hello(dev) == :pasturri
-    Eqmi.close_device(dev)
-  end
-
-  test "dms response", %{sim_device: device} do
-    {:ok, dev} = Eqmi.open_device(qmi_device())
-    IO.binwrite(device, @dms_response)
-    assert Eqmi.hello(dev) == :pasturri
-    Eqmi.close_device(dev)
-  end
-
-  test "create message", %{sim_device: _device} do
-    msg = Eqmi.CTL.request(:allocate_cid, [{:service, 1}])
-    payload = Eqmi.CTL.qmux_sdu(:request, 2, [msg])
-    header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
-    qmux_msg = Eqmi.qmux_message(header, payload)
-    assert qmux_msg == <<1, 15, 0, 0, 0, 0, 0, 2, 34, 0, 4, 0, 1, 1, 0, 1>>
+  test "send message", %{sim_device: device} do
+    {:ok, dev} = Eqmi.Server.start_link(qmi_device())
+    spawn(fn -> mock_read(device, 16, @ctl_response) end)
+    client = Eqmi.Server.client(dev, :qmi_dms)
+    spawn(fn -> mock_read(device, 12, @dms_response) end)
+    msg = Eqmi.DMS.request(:get_capabilities, [])
+    Eqmi.Server.send_message(dev, client, [msg])
+    assert_receive({:qmux, _})
   end
 end
