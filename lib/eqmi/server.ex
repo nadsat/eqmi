@@ -169,7 +169,8 @@ defmodule Eqmi.Server do
     {:noreply, s}
   end
 
-  def handle_info(_msg, s) do
+  def handle_info(msg, s) do
+    IO.inspect(msg, label: "info in server")
     {:noreply, s}
   end
 

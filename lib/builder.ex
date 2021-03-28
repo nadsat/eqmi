@@ -95,7 +95,8 @@ defmodule Eqmi.Builder do
         msg_id = Eqmi.message_type_id(msg_type)
 
         ctrl_flag = <<msg_id::unsigned-integer-size(8)>>
-        tx_id = <<transaction_id::unsigned-integer-size(8)>>
+        tx_bits_number = unquote(tx_bits) * 8
+        tx_id = <<transaction_id::little-unsigned-integer-size(tx_bits_number)>>
 
         [ctrl_flag, tx_id, messages]
         |> :erlang.list_to_binary()

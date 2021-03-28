@@ -63,7 +63,7 @@ defmodule Eqmi.Control do
 
     GenStateMachine.reply(data.client_pid, response)
     new_data = %{data | client_pid: nil}
-    {:next_state, :idle, new_data, 10_000}
+    {:next_state, :idle, new_data}
   end
 
   def wait4_response({:call, _from}, {:allocate, _service}, _data) do
