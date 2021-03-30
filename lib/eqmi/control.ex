@@ -44,11 +44,9 @@ defmodule Eqmi.Control do
 
   def idle({:call, from}, {:allocate, service}, data) do
     service = Eqmi.service_type_id(service)
-    msg = Eqmi.CTL.request(:allocate_cid, [{:service, service}])
+
     tx_id = data.current_tx
-    payload = Eqmi.CTL.qmux_sdu(:request, tx_id, [msg])
-    header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
-    qmux_msg = Eqmi.qmux_message(header, payload)
+    qmux_msg = ctl_msg_base(:allocate_cid, [{:service, service}], tx_id)
 
     Eqmi.Server.send_raw(data.server_ref, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
@@ -57,11 +55,9 @@ defmodule Eqmi.Control do
 
   def idle({:call, from}, {:release, service, cid}, data) do
     service = Eqmi.service_type_id(service)
-    msg = Eqmi.CTL.request(:release_cid, [{:service, service}, {:cid, cid}])
+
     tx_id = data.current_tx
-    payload = Eqmi.CTL.qmux_sdu(:request, tx_id, [msg])
-    header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
-    qmux_msg = Eqmi.qmux_message(header, payload)
+    qmux_msg = ctl_msg_base(:release_cid, [{:service, service}, {:cid, cid}], tx_id)
 
     Eqmi.Server.send_raw(data.server_ref, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
@@ -108,5 +104,12 @@ defmodule Eqmi.Control do
 
   defp get_cid(_msg) do
     {:error, :not_supported}
+  end
+
+  defp ctl_msg_base(msg_type, params, tx_id) do
+    msg = Eqmi.CTL.request(msg_type, params)
+    payload = Eqmi.CTL.qmux_sdu(:request, tx_id, [msg])
+    header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
+    Eqmi.qmux_message(header, payload)
   end
 end
