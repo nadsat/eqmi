@@ -9,6 +9,8 @@ defmodule EqmiTest do
                   1, 56, 0, 0, 0, 0, 0, 0, 0, 20, 2, 0, 1, 1, 21, 9, 0, 1, 56, 0, 0, 0, 0, 0, 0,
                   0, 22, 6, 0, 1, 1, 0, 0, 0, 0, 23, 5, 0, 1, 0, 0, 0, 0, 24, 1, 0, 1, 25, 9, 0,
                   1, 56, 0, 0, 0, 0, 0, 0, 0, 26, 13, 0, 1, 1, 1, 1, 56, 0, 0, 0, 0, 0, 0, 0, 0>>
+  @release_response <<1, 23, 0, 128, 0, 0, 1, 3, 35, 0, 12, 0, 2, 4, 0, 0, 0, 0, 0, 1, 2, 0, 2,
+                      1>>
 
   def qmi_device() do
     System.get_env("QMI_DEVICE")
@@ -54,5 +56,10 @@ defmodule EqmiTest do
     msg = Eqmi.DMS.request(:get_capabilities, [])
     Eqmi.Server.send_message(dev, client, [msg])
     assert_receive({:qmux, _})
+
+    spawn(fn -> mock_read(device, 4, @release_response) end)
+    res = Eqmi.Server.release_client(dev, client)
+
+    assert :ok = res
   end
 end
