@@ -26,9 +26,14 @@ defmodule Eqmi.Control do
   @doc """
   allocate client id for a service
   """
-  @spec allocate_cid(pid(), term()) :: :ok | {:error, term}
+  @spec allocate_cid(pid(), term()) :: {:ok, term()} | {:error, term}
   def allocate_cid(pid, service) do
     GenStateMachine.call(pid, {:allocate, service}, 6000)
+  end
+
+  @spec release_cid(pid(), term(), term()) :: :ok | {:error, term}
+  def release_cid(pid, service, cid) do
+    GenStateMachine.call(pid, {:release, service, cid}, 6000)
   end
 
   # gen_state_machine callbacks
@@ -47,10 +52,23 @@ defmodule Eqmi.Control do
 
     Eqmi.Server.send_raw(data.server_ref, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
-    {:next_state, :wait4_response, new_data, 10_000}
+    {:next_state, :wait4_cid, new_data, 10_000}
   end
 
-  def wait4_response(:info, {:qmux, msg}, data) do
+  def idle({:call, from}, {:release, service, cid}, data) do
+    service = Eqmi.service_type_id(service)
+    msg = Eqmi.CTL.request(:release_cid, [{:service, service}, {:cid, cid}])
+    tx_id = data.current_tx
+    payload = Eqmi.CTL.qmux_sdu(:request, tx_id, [msg])
+    header = Eqmi.QmuxHeader.new(:control_point, 0, :qmi_ctl, byte_size(payload))
+    qmux_msg = Eqmi.qmux_message(header, payload)
+
+    Eqmi.Server.send_raw(data.server_ref, qmux_msg)
+    new_data = %{data | client_pid: from, current_tx: tx_id + 1}
+    {:next_state, :wait4_release, new_data, 10_000}
+  end
+
+  def wait4_cid(:info, {:qmux, msg}, data) do
     [h | _] = msg.messages
     cid = get_cid(h)
 
@@ -66,7 +84,17 @@ defmodule Eqmi.Control do
     {:next_state, :idle, new_data}
   end
 
-  def wait4_response({:call, _from}, {:allocate, _service}, _data) do
+  def wait4_cid({:call, _from}, _msg, _data) do
+    {:keep_state_and_data, [:postpone, 10_000]}
+  end
+
+  def wait4_release(:info, {:qmux, _msg}, data) do
+    GenStateMachine.reply(data.client_pid, :ok)
+    new_data = %{data | client_pid: nil}
+    {:next_state, :idle, new_data}
+  end
+
+  def wait4_release({:call, _from}, _msg, _data) do
     {:keep_state_and_data, [:postpone, 10_000]}
   end
 

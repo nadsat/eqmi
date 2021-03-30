@@ -31,6 +31,15 @@ defmodule Eqmi.Server do
     end
   end
 
+  def release_client(pid, ref) do
+    with {:ok, ctl} = GenServer.call(pid, :get_ctl),
+         {:ok, client} = GenServer.call(pid, {:get_client, ref}) do
+      Eqmi.Control.release_cid(ctl, client.type, client.id)
+    end
+
+    GenServer.call(pid, {:release, ref})
+  end
+
   def qmux_message(pid, client_ref, ctrl_flag, service, messages) do
     GenServer.call(pid, {:qmux_message, client_ref, ctrl_flag, service, messages})
   end
@@ -101,6 +110,27 @@ defmodule Eqmi.Server do
     new_ctrls = Map.put(ctrls, ref, client_state)
     state = %{s | clients: new_clients, control_points: new_ctrls}
     {:reply, ref, state}
+  end
+
+  # falta borrar
+  def handle_call({:release, ref}, _from, %{clients: clients, control_points: controls} = s) do
+    control_point = Map.get(controls, ref)
+    client_list = Map.get(clients, control_point.type)
+    new_controls = Map.delete(controls, ref)
+    new_client_list = Map.delete(client_list, control_point.id)
+    new_clients = Map.put(clients, control_point.type, new_client_list)
+    new_state = %{s | clients: new_clients, control_points: new_controls}
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call({:get_client, ref}, _from, %{control_points: controls} = s) do
+    client = Map.get(controls, ref)
+
+    if client != nil do
+      {:reply, {:ok, client}, s}
+    else
+      {:reply, {:error, "control_point not found"}, s}
+    end
   end
 
   def handle_call(
