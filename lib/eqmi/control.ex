@@ -64,6 +64,11 @@ defmodule Eqmi.Control do
     {:next_state, :wait4_release, new_data, 10_000}
   end
 
+  def idle(:info, {:qmux, msg}, _data) do
+    IO.inspect(msg, label: "info in idle")
+    :keep_state_and_data
+  end
+
   def wait4_cid(:info, {:qmux, msg}, data) do
     [h | _] = msg.messages
     cid = get_cid(h)
