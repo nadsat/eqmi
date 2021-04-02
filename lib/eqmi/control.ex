@@ -48,7 +48,7 @@ defmodule Eqmi.Control do
     tx_id = data.current_tx
     qmux_msg = ctl_msg_base(:allocate_cid, [{:service, service}], tx_id)
 
-    Eqmi.Server.send_raw(data.server_ref, qmux_msg)
+    Eqmi.send_raw(data.server_ref, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
     {:next_state, :wait4_cid, new_data, 10_000}
   end
@@ -59,7 +59,7 @@ defmodule Eqmi.Control do
     tx_id = data.current_tx
     qmux_msg = ctl_msg_base(:release_cid, [{:service, service}, {:cid, cid}], tx_id)
 
-    Eqmi.Server.send_raw(data.server_ref, qmux_msg)
+    Eqmi.send_raw(data.server_ref, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
     {:next_state, :wait4_release, new_data, 10_000}
   end
