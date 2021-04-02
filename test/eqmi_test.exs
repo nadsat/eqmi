@@ -49,16 +49,16 @@ defmodule EqmiTest do
   end
 
   test "send message", %{sim_device: device} do
-    {:ok, dev} = Eqmi.Server.start_link(qmi_device())
+    {:ok, dev} = Eqmi.start_link(qmi_device())
     spawn(fn -> mock_read(device, 16, @ctl_response) end)
-    client = Eqmi.Server.client(dev, :qmi_dms)
+    client = Eqmi.client(dev, :qmi_dms)
     spawn(fn -> mock_read(device, 12, @dms_response) end)
     msg = Eqmi.DMS.request(:get_capabilities, [])
-    Eqmi.Server.send_message(dev, client, [msg])
+    Eqmi.send_message(dev, client, [msg])
     assert_receive({:qmux, _})
 
     spawn(fn -> mock_read(device, 4, @release_response) end)
-    res = Eqmi.Server.release_client(dev, client)
+    res = Eqmi.release_client(dev, client)
 
     assert :ok = res
   end

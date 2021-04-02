@@ -1,14 +1,43 @@
 # Eqmi
 
-QMI (Qualcomm MSM Interface) implementation in Elixir
+QMI (Qualcomm MSM Interface) client implementation in Elixir (not production ready)
+
+### Example use, WDS control point
+
+This example shows how to stablish a data connection similar to
 
 ```
-iex(1)>  {:ok, dev} = Eqmi.Server.start_link("/dev/cdc-wdm0")                                               {:ok, #PID<0.199.0>}
-iex(2)> client = Eqmi.Server.client(dev, :qmi_wds)                                                          #Reference<0.1318031025.2560360450.258300>
-iex(3)> msg = Eqmi.WDS.request(:start_network, [{:apn, "apn.isp.com"},{:ip_family_preference, 4}])
+qmicli --device=/dev/cdc-wdm0 --device-open-proxy --wds-start-network="ip-type=4,apn=my.isp.com" --client-no-release-cid
+```
+
+Initialization
+
+```
+iex(1)>  {:ok, dev} = Eqmi.start_link("/dev/cdc-wdm0")
+{:ok, #PID<0.199.0>}
+```
+
+Create a control point for WDS
+
+```
+iex(2)> client = Eqmi.client(dev, :qmi_wds)
+#Reference<0.1318031025.2560360450.258300>
+```
+
+Create start network message
+
+```
+iex(3)> msg = Eqmi.WDS.request(:start_network, [{:apn, "my.isp.com"},{:ip_family_preference, 4}])
 <<32, 0, ..., 99, 108>>
-iex(4)> Eqmi.Server.send_message(dev, client, [msg])                                                        :ok
-iex(5)> flush                                                                                               {:qmux,
+```
+
+Send message
+
+```
+iex(4)> Eqmi.send_message(dev, client, [msg])
+:ok
+iex(5)>flush
+{:qmux,
  %{
    client_id: 20,
    message_type: :response,
