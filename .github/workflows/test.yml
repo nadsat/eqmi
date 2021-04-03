@@ -48,4 +48,6 @@ jobs:
       - name: Run mix test
         env:
           MIX_ENV: test
+          SIM_DEVICE: /dev/tnt0
+          QMI_DEVICE: /dev/tnt1
         run: mix test
