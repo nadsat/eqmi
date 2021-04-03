@@ -1,6 +1,6 @@
 # Eqmi
 
-QMI (Qualcomm MSM Interface) client implementation in Elixir (not production ready)
+QMI (Qualcomm MSM Interface) client implementation in Elixir
 
 ### Example use, WDS control point
 
