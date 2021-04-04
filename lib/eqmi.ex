@@ -99,12 +99,13 @@ defmodule Eqmi do
   end
 
   def release_client(pid, ref) do
-    with {:ok, ctl} = GenServer.call(pid, :get_ctl),
-         {:ok, client} = GenServer.call(pid, {:get_client, ref}) do
+    with {:ok, ctl} <- GenServer.call(pid, :get_ctl),
+         {:ok, client} <- GenServer.call(pid, {:get_client, ref}) do
       Eqmi.Control.release_cid(ctl, client.type, client.id)
+      GenServer.call(pid, {:release, ref})
+    else
+      err -> err
     end
-
-    GenServer.call(pid, {:release, ref})
   end
 
   def qmux_message(pid, client_ref, ctrl_flag, service, messages) do
