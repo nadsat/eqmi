@@ -1,46 +1,46 @@
 defmodule Eqmi.Tlv do
   def decode_tlv(%{"format" => "guint8"}, data) do
-    <<val::unsigned-integer-size(8), rest::binary>> = data
+    <<val::little-unsigned-integer-size(8), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "guint16"}, data) do
-    <<val::unsigned-integer-size(16), rest::binary>> = data
+    <<val::little-unsigned-integer-size(16), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "guint32"}, data) do
-    <<val::unsigned-integer-size(32), rest::binary>> = data
+    <<val::little-unsigned-integer-size(32), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "guint64"}, data) do
-    <<val::unsigned-integer-size(64), rest::binary>> = data
+    <<val::little-unsigned-integer-size(64), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gfloat"}, data) do
-    <<val::float-size(32), rest::binary>> = data
+    <<val::little-float-size(32), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gdouble"}, data) do
-    <<val::float-size(64), rest::binary>> = data
+    <<val::little-float-size(64), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gint8"}, data) do
-    <<val::integer-size(8), rest::binary>> = data
+    <<val::little-integer-size(8), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gint16"}, data) do
-    <<val::integer-size(16), rest::binary>> = data
+    <<val::little-integer-size(16), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gint32"}, data) do
-    <<val::integer-size(32), rest::binary>> = data
+    <<val::little-integer-size(32), rest::binary>> = data
     {val, rest}
   end
 
@@ -51,7 +51,7 @@ defmodule Eqmi.Tlv do
 
     bit_number = s * 8
 
-    <<val::unsigned-integer-size(bit_number), rest::binary>> = data
+    <<val::little-unsigned-integer-size(bit_number), rest::binary>> = data
     {val, rest}
   end
 
@@ -86,10 +86,15 @@ defmodule Eqmi.Tlv do
   end
 
   def decode_tlv(%{"format" => "array"} = obj, data) do
-    prefix_size = Map.get(obj, "size-prefix-format", "guint8")
-    {len, payload} = decode_tlv(%{"format" => prefix_size}, data)
+    fix_size = Map.get(obj, "fixed-size")
 
-    elements_number = Map.get(obj, "fixed-size", Integer.to_string(len)) |> String.to_integer()
+    {elements_number, payload} =
+      if fix_size != nil do
+        {String.to_integer(fix_size), data}
+      else
+        prefix_size = Map.get(obj, "size-prefix-format", "guint8")
+        decode_tlv(%{"format" => prefix_size}, data)
+      end
 
     seq_prefix = Map.get(obj, "sequence-prefix-format")
 
@@ -200,7 +205,6 @@ defmodule Eqmi.Tlv do
   defp encode_value(%{"format" => "array"} = obj, data) do
     prefix_size = Map.get(obj, "size-prefix-format", "guint8")
     array_size = length(data)
-
     {l, c} = encode_value(%{"format" => prefix_size}, array_size)
     len = l + array_size
 
@@ -246,7 +250,7 @@ defmodule Eqmi.Tlv do
   end
 
   defp encode_unsigned(uint_size, val) do
-    content = <<val::unsigned-integer-size(uint_size)>>
+    content = <<val::little-unsigned-integer-size(uint_size)>>
 
     len = div(uint_size, 8)
     {len, content}
@@ -255,7 +259,7 @@ defmodule Eqmi.Tlv do
   defp encode_int(uint_size, val) do
     len = div(uint_size, 8)
 
-    content = <<val::integer-size(uint_size)>>
+    content = <<val::little-integer-size(uint_size)>>
 
     {len, content}
   end
@@ -263,7 +267,7 @@ defmodule Eqmi.Tlv do
   defp encode_float(uint_size, val) do
     len = div(uint_size, 8)
 
-    content = <<val::float-size(uint_size)>>
+    content = <<val::little-float-size(uint_size)>>
 
     {len, content}
   end
