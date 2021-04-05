@@ -20,6 +20,8 @@ defmodule EqmiTest do
                   248, 0, 0, 181, 2, 1, 0, 0, 128, 248, 0, 0, 22, 18, 0, 1, 2, 6, 17, 2, 0, 0, 0,
                   0, 0, 31, 17, 2, 0, 0, 0, 0, 0, 30, 4, 0, 255, 255, 255, 255, 38, 2, 0, 70, 0,
                   39, 4, 0, 228, 12, 0, 0, 40, 9, 0, 2, 232, 3, 0, 0, 144, 36, 0, 0>>
+  @wms_indication <<4, 1, 0, 70, 0, 18, 0, 1, 15, 0, 49, 52, 53, 11, 43, 53, 54, 57, 49, 54, 48,
+                    48, 50, 48, 50>>
 
   def qmi_device() do
     System.get_env("QMI_DEVICE")
@@ -77,5 +79,12 @@ defmodule EqmiTest do
     msg = Eqmi.NAS.process_qmux_sdu(@nas_response, payload)
     [h | _] = msg.messages
     assert h.msg_id == 67
+  end
+
+  test "wms indication", %{sim_device: _device} do
+    payload = %{client_id: 1, sender_type: :service, service_type: :qmi_wms}
+    msg = Eqmi.WMS.process_qmux_sdu(@wms_indication, payload)
+    [h | _] = msg.messages
+    assert h.msg_id == 70
   end
 end

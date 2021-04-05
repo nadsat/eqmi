@@ -67,8 +67,15 @@ defmodule Eqmi.Tlv do
   end
 
   def decode_tlv(%{"format" => "string"} = obj, data) do
-    prefix_size = Map.get(obj, "size-prefix-format", "guint8")
-    {len, payload} = decode_tlv(%{"format" => prefix_size}, data)
+    fix_size = Map.get(obj, "fixed-size")
+
+    {len, payload} =
+      if fix_size != nil do
+        {String.to_integer(fix_size), data}
+      else
+        prefix_size = Map.get(obj, "size-prefix-format", "guint8")
+        decode_tlv(%{"format" => prefix_size}, data)
+      end
 
     <<val::binary-size(len), rest::binary>> = payload
     {val, rest}
