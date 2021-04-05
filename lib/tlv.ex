@@ -227,11 +227,11 @@ defmodule Eqmi.Tlv do
   end
 
   defp encode_value(%{"format" => "sequence"} = obj, data) do
-    encode_struct(obj["content"], data)
+    encode_struct(obj["contents"], data)
   end
 
   defp encode_value(%{"format" => "struct"} = obj, data) do
-    encode_struct(obj["content"], data)
+    encode_struct(obj["contents"], data)
   end
 
   defp encode_struct(content, data) do
