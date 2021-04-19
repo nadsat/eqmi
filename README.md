@@ -2,7 +2,7 @@
 
 QMI (Qualcomm MSM Interface) client implementation in Elixir
 
-### Example use, WDS control point
+### WDS control point
 
 This example shows how to stablish a data connection similar to
 
@@ -93,4 +93,51 @@ to change qmi_wwan driver to use Raw-IP
 
 ```
 echo Y > /sys/class/net/wwan0/qmi/raw_ip
+```
+
+### NAS control point
+
+This example shows how to retrieve signal information
+
+Create control point for WDS
+
+```
+iex(2)> client = Eqmi.client(dev, :qmi_nas)
+#Reference<0.2220104178.776208385.43591>
+```
+
+Create get_signal_info message
+
+```
+iex(4)> msg = Eqmi.NAS.request(:get_signal_info,[])
+<<79, 0, 0, 0>>
+```
+
+Send message
+
+```
+iex(5)> Eqmi.send_message(dev, client, [msg])
+:ok
+iex(6)> flush
+{:qmux,
+ %{
+   client_id: 2,
+   message_type: :response,
+   messages: [
+     %{
+       msg_id: 79,
+       parameters: [
+         %{
+           lte_signal_strength: %{rsrp: 65425, rsrq: 242, rssi: 174, snr: 34},
+           param_id: 20
+         },
+         %{param_id: 2, result: %{error_code: 0, error_status: 0}}
+       ]
+     }
+   ],
+   sender_type: :service,
+   service_type: :qmi_nas,
+   tx_id: 1
+ }}
+:ok
 ```

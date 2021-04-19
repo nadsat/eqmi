@@ -87,4 +87,12 @@ defmodule EqmiTest do
     [h | _] = msg.messages
     assert h.msg_id == 70
   end
+
+  test "nas event report request", %{sim_device: _device} do
+    expected = <<2, 0, 7, 0, 16, 4, 0, 1, 2, 254, 2>>
+
+    assert Eqmi.NAS.request(:set_event_report, [
+             {:signal_strength_indicator, [{:report, 1}, {:thresholds, [-2, 2]}]}
+           ]) == expected
+  end
 end

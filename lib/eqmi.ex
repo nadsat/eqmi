@@ -180,7 +180,6 @@ defmodule Eqmi do
     {:reply, ref, state}
   end
 
-  # falta borrar
   def handle_call({:release, ref}, _from, %{clients: clients, control_points: controls} = s) do
     control_point = Map.get(controls, ref)
     client_list = Map.get(clients, control_point.type)

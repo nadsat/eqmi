@@ -215,9 +215,19 @@ defmodule Eqmi.Tlv do
     {l, c} = encode_value(%{"format" => prefix_size}, array_size)
     len = l + array_size
 
-    payload =
+    {_, res} =
       data
       |> Enum.map(fn x -> encode_value(obj["array-element"], x) end)
+      |> Enum.reduce(
+        {0, []},
+        fn {l, b}, {acc_len, bin_list} ->
+          {l + acc_len, [b | bin_list]}
+        end
+      )
+
+    payload =
+      res
+      |> Enum.reverse()
 
     content =
       [c | payload]
@@ -248,12 +258,12 @@ defmodule Eqmi.Tlv do
         end
       )
 
-    content =
+    bin_content =
       content_list
       |> Enum.reverse()
       |> :binary.list_to_bin()
 
-    {len, content}
+    {len, bin_content}
   end
 
   defp encode_unsigned(uint_size, val) do
