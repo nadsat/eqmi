@@ -30,17 +30,17 @@ defmodule Eqmi.Tlv do
   end
 
   def decode_tlv(%{"format" => "gint8"}, data) do
-    <<val::little-integer-size(8), rest::binary>> = data
+    <<val::little-signed-integer-size(8), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gint16"}, data) do
-    <<val::little-integer-size(16), rest::binary>> = data
+    <<val::little-signed-integer-size(16), rest::binary>> = data
     {val, rest}
   end
 
   def decode_tlv(%{"format" => "gint32"}, data) do
-    <<val::little-integer-size(32), rest::binary>> = data
+    <<val::little-signed-integer-size(32), rest::binary>> = data
     {val, rest}
   end
 
@@ -276,7 +276,7 @@ defmodule Eqmi.Tlv do
   defp encode_int(uint_size, val) do
     len = div(uint_size, 8)
 
-    content = <<val::little-integer-size(uint_size)>>
+    content = <<val::little-signed-integer-size(uint_size)>>
 
     {len, content}
   end

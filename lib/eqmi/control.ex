@@ -2,6 +2,7 @@ defmodule Eqmi.Control do
   use GenStateMachine, callback_mode: :state_functions
 
   @allocation_msg_id 34
+  require Logger
 
   @moduledoc """
   CTL control point implementation.
@@ -28,7 +29,7 @@ defmodule Eqmi.Control do
   """
   @spec allocate_cid(pid(), term()) :: {:ok, term()} | {:error, term}
   def allocate_cid(pid, service) do
-    GenStateMachine.call(pid, {:allocate, service}, 6000)
+    GenStateMachine.call(pid, {:allocate, service}, 12_000)
   end
 
   @spec release_cid(pid(), term(), term()) :: :ok | {:error, term}
@@ -38,8 +39,29 @@ defmodule Eqmi.Control do
 
   # gen_state_machine callbacks
   def init(ref) do
-    data = %CTLState{server_ref: ref, current_tx: 1}
-    {:ok, :idle, data}
+    tx_id = 0
+    data = %CTLState{server_ref: ref, current_tx: tx_id + 1}
+    event = {:next_event, :cast, :sync}
+    {:ok, :init_ctl, data, event}
+  end
+
+  def init_ctl(:cast, :sync, data) do
+    qmux_msg = ctl_msg_base(:sync, [], data.current_tx)
+    Eqmi.send_raw(data.server_ref, qmux_msg)
+    {:next_state, :wait4_sync, data}
+  end
+
+  def wait4_sync(:info, {:qmux, %{message_type: :response}}, data) do
+    {:next_state, :idle, data}
+  end
+
+  def wait4_sync(:info, {:qmux, msg}, _data) do
+    Logger.warn("Waiting 4 sync indication [#{inspect(msg)}]")
+    {:keep_state_and_data, 10_000}
+  end
+
+  def wait4_sync({:call, _from}, _msg, _data) do
+    {:keep_state_and_data, [:postpone, 10_000]}
   end
 
   def idle({:call, from}, {:allocate, service}, data) do
@@ -69,7 +91,7 @@ defmodule Eqmi.Control do
     :keep_state_and_data
   end
 
-  def wait4_cid(:info, {:qmux, msg}, data) do
+  def wait4_cid(:info, {:qmux, %{message_type: :response} = msg}, data) do
     [h | _] = msg.messages
     cid = get_cid(h)
 
@@ -83,6 +105,11 @@ defmodule Eqmi.Control do
     GenStateMachine.reply(data.client_pid, response)
     new_data = %{data | client_pid: nil}
     {:next_state, :idle, new_data}
+  end
+
+  def wait4_cid(:info, {:qmux, msg}, _data) do
+    Logger.warn("Waiting 4 cid indication [#{inspect(msg)}]")
+    {:keep_state_and_data, 10_000}
   end
 
   def wait4_cid({:call, _from}, _msg, _data) do

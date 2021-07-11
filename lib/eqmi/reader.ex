@@ -27,6 +27,7 @@ defmodule Eqmi.Reader do
   defp process_message(qmux, pid, dev) do
     <<_version, l::binary>> = qmux
     len = :binary.decode_unsigned(l, :little)
+
     msg = IO.binread(dev, len - 2)
     <<h::binary-size(3), rest::binary>> = msg
     header = Eqmi.QmuxHeader.parse(h)

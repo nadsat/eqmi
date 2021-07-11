@@ -22,6 +22,7 @@ defmodule EqmiTest do
                   39, 4, 0, 228, 12, 0, 0, 40, 9, 0, 2, 232, 3, 0, 0, 144, 36, 0, 0>>
   @wms_indication <<4, 1, 0, 70, 0, 18, 0, 1, 15, 0, 49, 52, 53, 11, 43, 53, 54, 57, 49, 54, 48,
                     48, 50, 48, 50>>
+  @sync_response <<1, 18, 0, 128, 0, 0, 1, 1, 39, 0, 7, 0, 2, 4, 0, 0, 0, 0, 0>>
 
   def qmi_device() do
     System.get_env("QMI_DEVICE")
@@ -48,11 +49,15 @@ defmodule EqmiTest do
     end
   end
 
-  def mock_read(device, size, msg) do
+  def mock_read(device, msgs) do
     {f, t, ref} = device
     dev = {f, t, %{ref | owner: self()}}
-    _data = IO.binread(dev, size)
-    IO.binwrite(dev, msg)
+
+    msgs
+    |> Enum.each(fn {size, msg} ->
+      IO.binread(dev, size)
+      IO.binwrite(dev, msg)
+    end)
   end
 
   setup do
@@ -60,15 +65,16 @@ defmodule EqmiTest do
   end
 
   test "send message", %{sim_device: device} do
+    msgs = [{12, @sync_response}, {16, @ctl_response}]
+    spawn(fn -> mock_read(device, msgs) end)
     {:ok, dev} = Eqmi.start_link(qmi_device())
-    spawn(fn -> mock_read(device, 16, @ctl_response) end)
     client = Eqmi.client(dev, :qmi_dms)
-    spawn(fn -> mock_read(device, 12, @dms_response) end)
+    spawn(fn -> mock_read(device, [{12, @dms_response}]) end)
     msg = Eqmi.DMS.request(:get_capabilities, [])
     Eqmi.send_message(dev, client, [msg])
     assert_receive({:qmux, _})
 
-    spawn(fn -> mock_read(device, 4, @release_response) end)
+    spawn(fn -> mock_read(device, [{4, @release_response}]) end)
     res = Eqmi.release_client(dev, client)
 
     assert :ok = res

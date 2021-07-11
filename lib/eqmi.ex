@@ -317,7 +317,7 @@ defmodule Eqmi do
     Eqmi.PBM.process_qmux_sdu(messages, payload)
   end
 
-  defp process_service(%{service_type: :qmi_UIM} = payload, messages) do
+  defp process_service(%{service_type: :qmi_uim} = payload, messages) do
     Eqmi.UIM.process_qmux_sdu(messages, payload)
   end
 
@@ -381,7 +381,7 @@ defmodule Eqmi do
     Eqmi.PBM.qmux_sdu(msg_type, tx_id, messages)
   end
 
-  defp qmux_sdu(:qmi_UIM, msg_type, tx_id, messages) do
+  defp qmux_sdu(:qmi_uim, msg_type, tx_id, messages) do
     Eqmi.UIM.qmux_sdu(msg_type, tx_id, messages)
   end
 
