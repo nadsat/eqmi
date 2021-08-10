@@ -1,4 +1,6 @@
 defmodule Eqmi.Builder do
+  alias Eqmi.Types
+
   common_base =
     File.read!("priv/qmi-common.json")
     |> Jason.decode!()
@@ -77,7 +79,7 @@ defmodule Eqmi.Builder do
           m_type
           |> :binary.decode_unsigned(:little)
           |> Bitwise.<<<(unquote(type_shift))
-          |> Eqmi.get_message_type()
+          |> Types.get_message_atom()
 
         decode_func = get_decode_func(msg_type)
         messages = process_messages(rest, decode_func, [])

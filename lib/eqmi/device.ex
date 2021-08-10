@@ -1,5 +1,6 @@
 defmodule Eqmi.Device do
   use GenServer
+  alias Eqmi.Types
 
   @ctl_id 0
 
@@ -76,7 +77,7 @@ defmodule Eqmi.Device do
   end
 
   defp qmux_sdu(msg_type, transaction_id, messages) do
-    msg_id = Eqmi.message_type_id(msg_type)
+    msg_id = Types.message_id(msg_type)
 
     ctrl_flag = <<msg_id::unsigned-integer-size(8)>>
     tx_id = <<transaction_id::unsigned-integer-size(8)>>
