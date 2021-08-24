@@ -12,8 +12,15 @@ defmodule Eqmi.Device do
               pid: nil
   end
 
-  def start_link(dev, opts \\ []) do
-    GenServer.start_link(__MODULE__, dev, opts)
+  def start_link(args) do
+    device = Keyword.fetch!(args, :device)
+    GenServer.start_link(__MODULE__, args, name: name(device))
+  end
+
+  def name(device) do
+    base_name = device |> String.trim() |> Path.basename()
+
+    Module.concat(__MODULE__, base_name)
   end
 
   def stop(pid, reason \\ :shutdown, timeout \\ :infinity) do
@@ -54,7 +61,8 @@ defmodule Eqmi.Device do
     GenServer.call(pid, {:send_raw, msg})
   end
 
-  def init(device) do
+  def init(args) do
+    device = Keyword.fetch!(args, :device)
     options = [:write, :raw]
 
     case File.open(device, options) do

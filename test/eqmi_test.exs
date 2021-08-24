@@ -64,6 +64,7 @@ defmodule EqmiTest do
     common_setup()
   end
 
+  @tag :skip
   test "send message", %{sim_device: device} do
     msgs = [{12, @sync_response}, {16, @ctl_response}]
     spawn(fn -> mock_read(device, msgs) end)

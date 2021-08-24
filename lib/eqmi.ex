@@ -50,8 +50,6 @@ defmodule Eqmi do
     |> :erlang.list_to_binary()
   end
 
-  @ctl_id 0
-
   defmodule ClientState do
     @moduledoc false
     defstruct type: nil,
@@ -60,8 +58,13 @@ defmodule Eqmi do
               pid: nil
   end
 
-  def start_link(dev, opts \\ []) do
-    GenServer.start_link(__MODULE__, dev, opts)
+  @spec device(String.t()) :: {:ok, reference()} | {:error, term()}
+  def device(path) do
+    GenServer.call(__MODULE__, {:get_device, path})
+  end
+
+  def start_link() do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def stop(pid, reason \\ :shutdown, timeout \\ :infinity) do
@@ -102,26 +105,8 @@ defmodule Eqmi do
     GenServer.call(pid, {:send_raw, msg})
   end
 
-  def init(device) do
-    options = [:write, :raw]
-
-    case File.open(device, options) do
-      {:ok, dev} ->
-        {:ok, reader} = Eqmi.Reader.start_link(self(), device)
-        {:ok, ctl} = Eqmi.Control.start_link(self())
-
-        {:ok,
-         %{
-           reader: reader,
-           device: dev,
-           control_points: %{},
-           clients: %{:qmi_ctl => %{@ctl_id => ctl}},
-           ctl: ctl
-         }}
-
-      {:error, reason} ->
-        {:stop, reason}
-    end
+  def init(_) do
+    {:ok, %{devices: %{}}}
   end
 
   defp qmux_sdu(msg_type, transaction_id, messages) do
@@ -144,6 +129,10 @@ defmodule Eqmi do
 
   def handle_call(:get_ctl, _from, s) do
     {:reply, {:ok, s.ctl}, s}
+  end
+
+  def handle_call({:get_device, path}, from, state) do
+    key = path |> String.trim()
   end
 
   def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
