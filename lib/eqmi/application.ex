@@ -4,6 +4,7 @@ defmodule Eqmi.Application do
 
   def start(_type, _arg) do
     children = [
+      {Registry, [:unique, :eqmi_registry]},
       {DynamicSupervisor, strategy: :one_for_one, name: Eqmi.DynamicSupervisor}
     ]
 

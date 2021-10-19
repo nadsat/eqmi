@@ -14,51 +14,73 @@ defmodule Eqmi.Device do
 
   def start_link(args) do
     device = Keyword.fetch!(args, :device)
-    GenServer.start_link(__MODULE__, args, name: name(device))
+    name = device |> base_name() |> via_tuple()
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
-  def name(device) do
+  defp via_tuple(dev_name) do
+    {:via, Registry, {:eqmi_registry, dev_name}}
+  end
+
+  defp base_name(device) do
     base_name = device |> String.trim() |> Path.basename()
 
     Module.concat(__MODULE__, base_name)
   end
 
-  def stop(pid, reason \\ :shutdown, timeout \\ :infinity) do
-    GenServer.stop(pid, reason, timeout)
+  def stop(dev_name, reason \\ :shutdown, timeout \\ :infinity) do
+    dev_name
+    |> base_name()
+    |> via_tuple()
+    |> GenServer.stop(reason, timeout)
   end
 
-  def client(pid, type) do
-    {:ok, ctl} = GenServer.call(pid, :get_ctl)
-
-    case Eqmi.Control.allocate_cid(ctl, type) do
+  def client(dev_name, type) do
+    case Eqmi.Control.allocate_cid(dev_name, type) do
       {:ok, cid} ->
-        GenServer.call(pid, {:new_client, type, cid})
+        dev_name
+        |> base_name()
+        |> via_tuple()
+        |> GenServer.call({:new_client, type, cid})
 
       _ ->
         {:error, "allocating control point"}
     end
   end
 
-  def release_client(pid, ref) do
-    with {:ok, ctl} <- GenServer.call(pid, :get_ctl),
-         {:ok, client} <- GenServer.call(pid, {:get_client, ref}) do
-      Eqmi.Control.release_cid(ctl, client.type, client.id)
-      GenServer.call(pid, {:release, ref})
+  def release_client(dev_name, ref) do
+    name =
+      dev_name
+      |> base_name()
+      |> via_tuple()
+
+    with {:ok, client} <- GenServer.call(name, {:get_client, ref}) do
+      Eqmi.Control.release_cid(dev_name, client.type, client.id)
+      GenServer.call(name, {:release, ref})
     else
       err -> err
     end
   end
 
-  def qmux_message(pid, client_ref, ctrl_flag, service, messages) do
-    GenServer.call(pid, {:qmux_message, client_ref, ctrl_flag, service, messages})
+  def qmux_message(dev_name, client_ref, ctrl_flag, service, messages) do
+    dev_name
+    |> base_name()
+    |> via_tuple()
+    |> GenServer.call({:qmux_message, client_ref, ctrl_flag, service, messages})
   end
 
-  def send_message(pid, ref, msg) do
-    GenServer.call(pid, {:send_msg, ref, msg})
+  def send_message(dev_name, ref, msg) do
+    dev_name
+    |> base_name()
+    |> via_tuple()
+    |> GenServer.call({:send_msg, ref, msg})
   end
 
-  def send_raw(pid, msg) do
-    GenServer.call(pid, {:send_raw, msg})
+  def send_raw(dev_name, msg) do
+    dev_name
+    |> base_name()
+    |> via_tuple()
+    |> GenServer.call({:send_raw, msg})
   end
 
   def init(args) do
@@ -68,7 +90,11 @@ defmodule Eqmi.Device do
     case File.open(device, options) do
       {:ok, dev} ->
         {:ok, reader} = Eqmi.Reader.start_link(self(), device)
-        {:ok, ctl} = Eqmi.Control.start_link(self())
+
+        {:ok, ctl} =
+          device
+          |> base_name()
+          |> Eqmi.Control.start_link()
 
         {:ok,
          %{

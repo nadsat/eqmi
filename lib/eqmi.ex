@@ -63,7 +63,7 @@ defmodule Eqmi do
     GenServer.call(__MODULE__, {:get_device, path})
   end
 
-  def start_link() do
+  def start_link(_args) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
@@ -106,7 +106,7 @@ defmodule Eqmi do
   end
 
   def init(_) do
-    {:ok, %{devices: %{}}}
+    {:ok, %{devices: %{}, refs: %{}}}
   end
 
   defp qmux_sdu(msg_type, transaction_id, messages) do
@@ -131,8 +131,22 @@ defmodule Eqmi do
     {:reply, {:ok, s.ctl}, s}
   end
 
-  def handle_call({:get_device, path}, from, state) do
-    key = path |> String.trim()
+  def handle_call({:get_device, device_path}, _from, state) do
+    path = device_path |> String.trim()
+
+    case Map.get(state.devices, path) do
+      nil ->
+        spec = {Eqmi.Device, device: path}
+        DynamicSupervisor.start_child(Eqmi.DynamicSupervisor, spec)
+        ref = make_ref()
+        r = Map.put(state.refs, ref, path)
+        d = Map.put(state.devices, path, ref)
+        new_state = %{devices: d, refs: r}
+        {:reply, {:ok, nil}, new_state}
+
+      dev ->
+        {:reply, {:ok, dev}, state}
+    end
   end
 
   def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
