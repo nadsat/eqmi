@@ -71,23 +71,17 @@ defmodule Eqmi do
     GenServer.stop(pid, reason, timeout)
   end
 
-  def client(pid, type) do
-    {:ok, ctl} = GenServer.call(pid, :get_ctl)
-
-    case Eqmi.Control.allocate_cid(ctl, type) do
-      {:ok, cid} ->
-        GenServer.call(pid, {:new_client, type, cid})
-
-      _ ->
-        {:error, "allocating control point"}
+  def client(dev_ref, type) do
+    with {:ok, path} <- GenServer.call(__MODULE__, {:get_path, dev_ref}) do
+      Eqmi.Device.client(path, type)
+    else
+      err -> err
     end
   end
 
-  def release_client(pid, ref) do
-    with {:ok, ctl} <- GenServer.call(pid, :get_ctl),
-         {:ok, client} <- GenServer.call(pid, {:get_client, ref}) do
-      Eqmi.Control.release_cid(ctl, client.type, client.id)
-      GenServer.call(pid, {:release, ref})
+  def release_client(dev_ref, client_ref) do
+    with {:ok, path} <- GenServer.call(__MODULE__, {:get_path, dev_ref}) do
+      Eqmi.Device.release_client(path, client_ref)
     else
       err -> err
     end
@@ -146,6 +140,16 @@ defmodule Eqmi do
 
       dev ->
         {:reply, {:ok, dev}, state}
+    end
+  end
+
+  def handle_call({:get_path, ref}, _from, state) do
+    case Map.get(state.ref, ref) do
+      nil ->
+        {:reply, {:error, :device_not_found}, state}
+
+      path ->
+        {:reply, {:ok, path}, state}
     end
   end
 
