@@ -94,14 +94,6 @@ defmodule Eqmi do
     end
   end
 
-  def send_raw(dev_ref, msg) do
-    with {:ok, path} <- GenServer.call(__MODULE__, {:get_path, dev_ref}) do
-      Eqmi.Device.send_raw(path, msg)
-    else
-      err -> err
-    end
-  end
-
   def init(_) do
     {:ok, %{devices: %{}, refs: %{}}}
   end
@@ -125,29 +117,13 @@ defmodule Eqmi do
   end
 
   def handle_call({:get_path, ref}, _from, state) do
-    case Map.get(state.ref, ref) do
+    case Map.get(state.refs, ref) do
       nil ->
         {:reply, {:error, :device_not_found}, state}
 
       path ->
         {:reply, {:ok, path}, state}
     end
-  end
-
-  def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
-    {pid, _} = from
-    client_state = %ClientState{type: type, id: cid, current_tx: 0, pid: pid}
-    ref = :erlang.make_ref()
-
-    clients_ids =
-      clients
-      |> Map.get(type, %{})
-      |> Map.put(cid, pid)
-
-    new_clients = Map.put(clients, type, clients_ids)
-    new_ctrls = Map.put(ctrls, ref, client_state)
-    state = %{s | clients: new_clients, control_points: new_ctrls}
-    {:reply, ref, state}
   end
 
   def handle_call({:get_client, ref}, _from, %{control_points: controls} = s) do

@@ -93,7 +93,6 @@ defmodule Eqmi.Device do
 
         {:ok, ctl} =
           device
-          |> base_name()
           |> Eqmi.Control.start_link()
 
         {:ok,
@@ -135,7 +134,7 @@ defmodule Eqmi.Device do
   def handle_call({:new_client, type, cid}, from, %{clients: clients, control_points: ctrls} = s) do
     {pid, _} = from
     client_state = %ClientState{type: type, id: cid, current_tx: 0, pid: pid}
-    ref = :erlang.make_ref()
+    ref = Process.monitor(pid)
 
     clients_ids =
       clients
@@ -148,13 +147,8 @@ defmodule Eqmi.Device do
     {:reply, ref, state}
   end
 
-  def handle_call({:release, ref}, _from, %{clients: clients, control_points: controls} = s) do
-    control_point = Map.get(controls, ref)
-    client_list = Map.get(clients, control_point.type)
-    new_controls = Map.delete(controls, ref)
-    new_client_list = Map.delete(client_list, control_point.id)
-    new_clients = Map.put(clients, control_point.type, new_client_list)
-    new_state = %{s | clients: new_clients, control_points: new_controls}
+  def handle_call({:release, ref}, _from, s) do
+    new_state = release_base(ref, s)
     {:reply, :ok, new_state}
   end
 
@@ -234,6 +228,11 @@ defmodule Eqmi.Device do
     {:noreply, s}
   end
 
+  def handle_info({:DOWN, ref, :process, _object, _reason}, state) do
+    new_state = release_base(ref, state)
+    {:noreply, new_state}
+  end
+
   def handle_info(msg, s) do
     IO.inspect(msg, label: "info in server")
     {:noreply, s}
@@ -241,6 +240,15 @@ defmodule Eqmi.Device do
 
   def terminate(_reason, s) do
     File.close(s.device)
+  end
+
+  defp release_base(ref, %{clients: clients, control_points: controls} = s) do
+    control_point = Map.get(controls, ref)
+    client_list = Map.get(clients, control_point.type)
+    new_controls = Map.delete(controls, ref)
+    new_client_list = Map.delete(client_list, control_point.id)
+    new_clients = Map.put(clients, control_point.type, new_client_list)
+    %{s | clients: new_clients, control_points: new_controls}
   end
 
   defp find_client(clients, service_type, client_id) do
