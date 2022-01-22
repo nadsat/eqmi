@@ -38,8 +38,9 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -qq linux-headers-`uname -r`
-          git clone --depth=50 https://github.com/freemed/tty0tty.git
-          cd tty0tty/module && make && sudo cp tty0tty.ko /lib/modules/$(uname -r)/kernel/drivers/misc/
+          git clone  https://github.com/freemed/tty0tty.git
+          cd tty0tty/module &&  git checkout 9f2d06e89a9ba18f3193169a5d84789986ace2ab
+          make && sudo cp tty0tty.ko /lib/modules/$(uname -r)/kernel/drivers/misc/
           cd -
           sudo depmod
           sudo modprobe tty0tty
