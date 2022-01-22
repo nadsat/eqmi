@@ -13,7 +13,7 @@ qmicli --device=/dev/cdc-wdm0 --device-open-proxy --wds-start-network="ip-type=4
 Initialization
 
 ```
-iex(1)>  {:ok, dev} = Eqmi.start_link("/dev/cdc-wdm0")
+iex(1)>  {:ok, dev} = Eqmi.device("/dev/cdc-wdm0")
 {:ok, #PID<0.199.0>}
 ```
 

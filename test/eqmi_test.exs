@@ -67,7 +67,7 @@ defmodule EqmiTest do
   test "send message", %{sim_device: device} do
     msgs = [{12, @sync_response}, {16, @ctl_response}]
     spawn(fn -> mock_read(device, msgs) end)
-    {:ok, dev} = Eqmi.start_link(qmi_device())
+    {:ok, dev} = Eqmi.device(qmi_device())
     client = Eqmi.client(dev, :qmi_dms)
     spawn(fn -> mock_read(device, [{12, @dms_response}]) end)
     msg = Eqmi.DMS.request(:get_capabilities, [])

@@ -11,43 +11,64 @@ defmodule Eqmi.Control do
     @moduledoc false
     # current_tx: current transaction id
     # server_pid: pid of  EqmiServer module
-    defstruct server_ref: nil,
+    defstruct device_name: nil,
               current_tx: 0,
               client_pid: nil
+  end
+
+  defp via_tuple(dev_name) do
+    {:via, Registry, {:eqmi_registry, dev_name}}
+  end
+
+  defp base_name(device) do
+    base_name = device |> String.trim() |> Path.basename()
+
+    Module.concat(__MODULE__, base_name)
   end
 
   @doc """
   Start up a CallControl GenStateMachine.
   """
   @spec start_link([term]) :: {:ok, pid} | {:error, term}
-  def start_link(server_ref, opts \\ []) do
-    GenStateMachine.start_link(__MODULE__, server_ref, opts)
+  def start_link(device_name) do
+    name =
+      device_name
+      |> base_name()
+      |> via_tuple()
+
+    GenStateMachine.start_link(__MODULE__, device_name, name: name)
   end
 
   @doc """
   allocate client id for a service
   """
-  @spec allocate_cid(pid(), term()) :: {:ok, term()} | {:error, term}
-  def allocate_cid(pid, service) do
-    GenStateMachine.call(pid, {:allocate, service}, 12_000)
+  @spec allocate_cid(String.t(), term()) :: {:ok, term()} | {:error, term}
+  def allocate_cid(device_name, service) do
+    device_name
+    |> base_name()
+    |> via_tuple()
+    |> GenStateMachine.call({:allocate, service}, 12_000)
   end
 
   @spec release_cid(pid(), term(), term()) :: :ok | {:error, term}
-  def release_cid(pid, service, cid) do
-    GenStateMachine.call(pid, {:release, service, cid}, 6000)
+  def release_cid(device_name, service, cid) do
+    device_name
+    |> base_name()
+    |> via_tuple()
+    |> GenStateMachine.call({:release, service, cid}, 6000)
   end
 
   # gen_state_machine callbacks
-  def init(ref) do
+  def init(dev_name) do
     tx_id = 0
-    data = %CTLState{server_ref: ref, current_tx: tx_id + 1}
+    data = %CTLState{device_name: dev_name, current_tx: tx_id + 1}
     event = {:next_event, :cast, :sync}
     {:ok, :init_ctl, data, event}
   end
 
   def init_ctl(:cast, :sync, data) do
     qmux_msg = ctl_msg_base(:sync, [], data.current_tx)
-    Eqmi.send_raw(data.server_ref, qmux_msg)
+    Eqmi.Device.send_raw(data.device_name, qmux_msg)
     {:next_state, :wait4_sync, data}
   end
 
@@ -70,7 +91,7 @@ defmodule Eqmi.Control do
     tx_id = data.current_tx
     qmux_msg = ctl_msg_base(:allocate_cid, [{:service, service}], tx_id)
 
-    Eqmi.send_raw(data.server_ref, qmux_msg)
+    Eqmi.Device.send_raw(data.device_name, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
     {:next_state, :wait4_cid, new_data, 10_000}
   end
@@ -81,7 +102,7 @@ defmodule Eqmi.Control do
     tx_id = data.current_tx
     qmux_msg = ctl_msg_base(:release_cid, [{:service, service}, {:cid, cid}], tx_id)
 
-    Eqmi.send_raw(data.server_ref, qmux_msg)
+    Eqmi.Device.send_raw(data.device_name, qmux_msg)
     new_data = %{data | client_pid: from, current_tx: tx_id + 1}
     {:next_state, :wait4_release, new_data, 10_000}
   end

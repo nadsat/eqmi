@@ -1,21 +1,23 @@
 defmodule Eqmi.QmuxHeader do
+  alias Eqmi.Types
+
   def parse(msg) do
     <<control_flag::integer-size(8), service_type::integer-size(8), client_id::integer-size(8)>> =
       msg
 
     %{
-      sender_type: Eqmi.get_sender_type(control_flag),
+      sender_type: Types.get_sender_atom(control_flag),
       client_id: client_id,
-      service_type: Eqmi.get_service_type(service_type)
+      service_type: Types.get_service_atom(service_type)
     }
   end
 
   def new(sender, client_id, service, len) do
-    sender_id = Eqmi.sender_type_id(sender)
+    sender_id = Types.sender_id(sender)
 
     ctrl_flags = <<sender_id::little-unsigned-integer-size(8)>>
 
-    service_id = Eqmi.service_type_id(service)
+    service_id = Types.service_id(service)
     service_type = <<service_id::little-unsigned-integer-size(8)>>
     cid = <<client_id::little-unsigned-integer-size(8)>>
 
