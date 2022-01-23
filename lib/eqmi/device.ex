@@ -273,6 +273,10 @@ defmodule Eqmi.Device do
     Eqmi.DPM.process_qmux_sdu(messages, payload)
   end
 
+  defp process_service(%{service_type: :qmi_dsd} = payload, messages) do
+    Eqmi.DSD.process_qmux_sdu(messages, payload)
+  end
+
   defp process_service(%{service_type: :qmi_nas} = payload, messages) do
     Eqmi.NAS.process_qmux_sdu(messages, payload)
   end
@@ -339,6 +343,10 @@ defmodule Eqmi.Device do
 
   defp qmux_sdu(:qmi_dpm, msg_type, tx_id, messages) do
     Eqmi.DPM.qmux_sdu(msg_type, tx_id, messages)
+  end
+
+  defp qmux_sdu(:qmi_dsd, msg_type, tx_id, messages) do
+    Eqmi.DSD.qmux_sdu(msg_type, tx_id, messages)
   end
 
   defp qmux_sdu(:qmi_nas, msg_type, tx_id, messages) do
