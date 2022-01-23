@@ -16,6 +16,7 @@ defmodule Eqmi.Types do
     16 => :qmi_loc,
     17 => :qmi_sar,
     20 => :qmi_wda,
+    47 => :qmi_dpm,
     226 => :qmi_oma,
     231 => :qmi_gms,
     232 => :qmi_gas
