@@ -104,12 +104,18 @@ defmodule Eqmi do
     case Map.get(state.devices, path) do
       nil ->
         spec = {Eqmi.Device, device: path}
-        DynamicSupervisor.start_child(Eqmi.DynamicSupervisor, spec)
-        ref = make_ref()
-        r = Map.put(state.refs, ref, path)
-        d = Map.put(state.devices, path, ref)
-        new_state = %{devices: d, refs: r}
-        {:reply, {:ok, ref}, new_state}
+
+        case DynamicSupervisor.start_child(Eqmi.DynamicSupervisor, spec) do
+          {:ok, _pid} ->
+            ref = make_ref()
+            r = Map.put(state.refs, ref, path)
+            d = Map.put(state.devices, path, ref)
+            new_state = %{devices: d, refs: r}
+            {:reply, {:ok, ref}, new_state}
+
+          {:error, error} ->
+            {:reply, {:error, error}, state}
+        end
 
       dev ->
         {:reply, {:ok, dev}, state}
